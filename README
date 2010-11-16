@@ -1,0 +1,37 @@
+pandora_client
+
+python libary to access a pan.do/ra instance
+
+pandora client example:
+  import pandora_client
+  #example config.json
+  '''
+  {
+      "url": "http://localhost:8000/api/",
+      "username": "username",
+      "password": "password",
+      "cache": "~/.ox/client.sqlite",
+      "volumes": {
+          "volumename": "/media/2010/Movies"
+      }
+  }
+  '''
+  c = pandora_client.Client('config.json')
+  c.scan()  #scans all volumes for files and updates cache db
+  c.sync()  #syncs cached file info with site, and encodes and uploads requested media
+  c.clean() #cleanup transcodes created druing sync to save disk space
+
+
+just using the API:
+  api = pandora_client.API("http://localhost:8000/api/")
+  r = api.find({
+    'query': {'conditions':[]},
+    'keys': ['title', 'year'],
+    'range': [0, 100]
+  })
+  for i in r['data']['items']:
+    ...
+    
+api features and documentation is available at the api end point,
+i.e. http://localhost:8000/api/
+
