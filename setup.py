@@ -12,7 +12,7 @@ def get_bzr_version():
 
 setup(
     name="pandora_client",
-    version="1.0.%s" % get_bzr_version() ,
+    version="0.0.%s" % get_bzr_version() ,
     description='''pandora_client - commandline client and python api for pan.do/ra
 
 can be used interact with pan.do/ra instance via its api.
