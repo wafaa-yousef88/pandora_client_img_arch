@@ -47,14 +47,19 @@ def encode(filename, profile):
 
 class Client(object):
     def __init__(self, config):
-        with open(config) as f:
-            self._config = json.loads(f.read())
-        self.api = API(self._config['url'])
-        r = self.api.login({'username':self._config['username'], 'password':self._config['password']})
-        if r['status']['code'] == 200:
-            self.user = r['data']['user']
+        if isinstance(config, basestring):
+            with open(config) as f:
+                self._config = json.loads(f.read())
         else:
-            print 'login failed'
+            self.config = config
+        self.api = API(self._config['url'])
+
+        if 'username' in self._config:
+            r = self.api.login({'username':self._config['username'], 'password':self._config['password']})
+            if r['status']['code'] == 200:
+                self.user = r['data']['user']
+            else:
+                print 'login failed'
 
         conn, c = self._conn()
 
