@@ -13,9 +13,10 @@ def get_bzr_version():
 setup(
     name="pandora_client",
     version="1.0.%s" % get_bzr_version() ,
-    description='''pandora_client - headless archive client for pan.do/ra
+    description='''pandora_client - commandline client and python api for pan.do/ra
 
-can be used instead of OxFF to keep archive and pan.do/ra instance in sync.
+can be used interact with pan.do/ra instance via its api.
+or instead of OxFF to keep archive and pan.do/ra instance in sync.
 ''',
     author="j",
     author_email="j@mailb.org",

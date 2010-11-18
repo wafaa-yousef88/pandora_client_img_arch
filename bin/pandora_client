@@ -1,0 +1,41 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
+# vi:si:et:sw=4:sts=4:ts=4
+# GPL 2008
+
+import os
+import sys
+from optparse import OptionParser
+
+root = os.path.join(os.path.abspath(os.path.dirname(__file__)), '..')
+if os.path.exists(os.path.join(root, 'pandora_client')):
+    sys.path.insert(0, root)
+
+
+import pandora_client
+
+if __name__ == '__main__':
+    usage = "usage: %prog [options] action"
+    parser = OptionParser(usage=usage)
+    parser.add_option('-c', '--config', dest='config', help='config.json containing config', default='~/.ox/client.json', type='string')
+    (opts, args) = parser.parse_args()
+
+    opts.config = os.path.expanduser(opts.config)
+    if None in (opts.config, ) or not os.path.exists(opts.config):
+        parser.print_help()
+        sys.exit()
+
+    if not args or args[0] not in ('scan', 'sync', 'clean'):
+        parser.error('you must specify a valid action. \n\t\tknown actions are: scan, sync, clean')
+
+    action = args[0]
+
+    c = pandora_client.Client(opts.config)
+    if action == 'scan':
+        c.scan()
+    if action == 'sync':
+        c.sync()
+    if action == 'clean':
+        c.clean()
+
+
