@@ -133,8 +133,9 @@ def video(video, target, profile, info):
     print cmd
 
     #r = run_command(cmd, -1)
-    p = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    p = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE)
     '''
+    p = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     line = p.stderr.readline()
     while line:
         if line.startswith('frame='):
