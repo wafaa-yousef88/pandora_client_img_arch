@@ -20,9 +20,9 @@ import utils
 
 __version__ = '0.1'
 DEBUG = True
-prefix = os.environ.get('oxMEDIA', os.path.expanduser('~/.ox/media'))
+default_media_cache = os.environ.get('oxMEDIA', os.path.expanduser('~/.ox/media'))
 
-def encode(filename, profile):
+def encode(filename, prefix, profile):
     info = utils.avinfo(filename)
     oshash = info['oshash']
     frames = []
@@ -49,10 +49,10 @@ class Client(object):
     def __init__(self, config):
         if isinstance(config, basestring):
             with open(config) as f:
-                self._config = json.loads(f.read())
+                self._config = json.load(f)
         else:
             self.config = config
-        self.api = API(self._config['url'])
+        self.api = API(self._config['url'], media_cache=self.media_cache())
 
         if 'username' in self._config:
             r = self.api.login({'username':self._config['username'], 'password':self._config['password']})
@@ -92,6 +92,9 @@ class Client(object):
         conn.text_factory = sqlite3.OptimizedUnicode
         return conn, conn.cursor()
 
+    def media_cache(self):
+        return os.path.expanduser(self._config.get('media-cache', default_media_cache))
+    
     def get(self, key, default=None):
         conn, c = self._conn()
         c.execute('SELECT value FROM setting WHERE key = ?', (key, ))
@@ -231,17 +234,21 @@ class Client(object):
 
     def clean(self):
         print "remove temp videos and stills"
-        if os.path.exists(prefix):
-            shutil.rmtree(prefix)
+        if os.path.exists(self.prefix()):
+            shutil.rmtree(self.prefix())
 
 class API(object):
-    def __init__(self, url, cj=None):
+    def __init__(self, url, cj=None, media_cache=None):
         if cj:
             self._cj = cj
         else:
             self._cj = cookielib.CookieJar()
         self._opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(self._cj))
         urllib2.install_opener(self._opener)
+
+        self.media_cache = media_cache
+        if not self.media_cache:
+            self.media_cache = default_media_cache 
 
         self.url = url
         r = self._request('api', {})
@@ -297,7 +304,7 @@ class API(object):
         return self._json_request(self.url, form)
 
     def uploadVideo(self, filename, data, profile):
-        i = encode(filename, profile)
+        i = encode(filename, self.media_cache, profile)
 
         #upload frames
         form = ox.MultiPartForm()

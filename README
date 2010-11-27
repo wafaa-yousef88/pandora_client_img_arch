@@ -11,6 +11,7 @@ pandora client example:
       "username": "username",
       "password": "password",
       "cache": "~/.ox/client.sqlite",
+      "media-cache": "~/.ox/media",
       "volumes": {
           "volumename": "/media/2010/Movies"
       }
