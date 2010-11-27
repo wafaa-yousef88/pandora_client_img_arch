@@ -134,14 +134,23 @@ def video(video, target, profile, info):
 
     #r = run_command(cmd, -1)
     p = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    '''
     line = p.stderr.readline()
     while line:
         if line.startswith('frame='):
             frames = line.split('=')[1].strip().split(' ')[0]
         line = p.stderr.readline()
+    '''
+    try:
+        p.wait()
+        r = p.returncode
+    except KeyboardInterrupt:
+        r = 1
+        print "\ncleaning up unfinished encoding:\nremoving", target
+        print "\n"
+        os.unlink(target)
+        sys.exit(1)
 
-    p.wait()
-    r = p.returncode
     print "done"
     return r == 0
 
