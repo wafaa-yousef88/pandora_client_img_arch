@@ -313,7 +313,9 @@ class API(object):
         for key in data:
             form.add_field(str(key), data[key].encode('utf-8'))
         for frame in i['frames']:
-            form.add_file('frame', os.path.basename(frame), open(frame, 'rb'))
+            fname = os.path.basename(frame)
+            if isinstance(fname, unicode): fname = fname.encode('utf-8')
+            form.add_file('frame', fname, open(frame, 'rb'))
         r = self._json_request(self.url, form)
 
         #upload video in chunks
