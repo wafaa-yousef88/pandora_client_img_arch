@@ -55,7 +55,7 @@ class Client(object):
         self.api = API(self._config['url'], media_cache=self.media_cache())
 
         if 'username' in self._config:
-            r = self.api.login({'username':self._config['username'], 'password':self._config['password']})
+            r = self.api.login(username=self._config['username'], password=self._config['password'])
             if r['status']['code'] == 200:
                 self.user = r['data']['user']
             else:
@@ -251,16 +251,28 @@ class API(object):
             self.media_cache = default_media_cache 
 
         self.url = url
-        r = self._request('api', {})
-        self._actions = r['data']['actions'] 
+        r = self._request('apidoc', {})
+        self._doc = r['data']['actions']
+        self._actions = r['data']['actions'].keys()
         for a in r['data']['actions']:
-            setattr(self.__class__, a, self._action(a))
+            self._add_action(a)
 
-    def _action(self, action):
-        def f(self, data=None):
-            return self._request(action, data)
-        return f
-        #return lambda self, data: 
+    def _add_method(self, method, name):
+        if name is None:
+            name = method.func_name
+        setattr(self.__class__, name, method)
+
+    def _add_action(self, action):
+        def method(self, *args, **kw):
+            if not kw:
+                if args:
+                    kw = args[0]
+                else:
+                    kw = None
+            return self._request(action, kw)
+        method.__doc__ = self._doc[action]
+        method.func_name = str(action)
+        self._add_method(method, action)
 
     def _json_request(self, url, form):
         try:
@@ -304,6 +316,8 @@ class API(object):
         return self._json_request(self.url, form)
 
     def uploadVideo(self, filename, data, profile):
+        if DEBUG:
+            print filename
         i = encode(filename, self.media_cache, profile)
 
         #upload frames
@@ -322,7 +336,8 @@ class API(object):
         url = self.url + 'upload/' + '?profile=' + str(profile) + '&oshash=' + i['oshash']
         ogg = Firefogg(cj=self._cj, debug=True)
         ogg.upload(url, i['video'], data)
-        print "done"
+        if DEBUG:
+            print "done"
 
     def uploadData(self, filename, oshash):
         form = ox.MultiPartForm()
