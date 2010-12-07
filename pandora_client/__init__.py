@@ -10,6 +10,7 @@ import json
 import sqlite3
 import time
 import shutil
+import webbrowser
 
 from firefogg import Firefogg
 import ox
@@ -137,7 +138,7 @@ class Client(object):
             path = self._config['volumes'][name]
             path = os.path.normpath(path)
             files = []
-            for dirpath, dirnames, filenames in os.walk(path):
+            for dirpath, dirnames, filenames in os.walk(path, followlinks=True):
                 if isinstance(dirpath, str):
                     dirpath = dirpath.decode('utf-8')
                 if filenames:
@@ -289,7 +290,7 @@ class API(object):
                 if e.code >= 500:
                     with open('/tmp/error.html', 'w') as f:
                         f.write(e.read())
-                    os.system('firefox /tmp/error.html')
+                    webbrowser.open_new_tab('/tmp/error.html')
 
             result = e.read()
             try:
