@@ -1,7 +1,10 @@
 #!/usr/bin/env python
 # vi:si:et:sw=4:sts=4:ts=4
 # encoding: utf-8
-from distutils.core import setup
+try:
+    from setuptools import setup
+except:
+    from distutils.core import setup
 
 def get_bzr_version():
     import os
@@ -29,6 +32,7 @@ or instead of OxFF to keep archive and pan.do/ra instance in sync.
     packages=[
         'pandora_client'
     ],
+    install_requires=['python-firefogg', 'ox'],
     keywords = [
 ],
     classifiers = [
