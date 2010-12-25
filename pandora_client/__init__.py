@@ -181,26 +181,41 @@ class Client(object):
                 prefix = volumes[name]['path']
                 files = self.files(prefix)
                 files['volume'] = name
+                print 'sending list of files'
                 r = self.api.update(files)
                 if r['status']['code'] == 200:
-
-                    if r['data']['info']:
+                    #backend works on update request asyncronously, wait for it to finish
+                    if 'taskId' in r['data']:
+                        t = self.api.taskStatus(task_id=r['data']['taskId'])
+                        print 'waiting for server'
+                        while t['data']['status'] == 'PENDING':
+                            time.sleep(5)
+                            t = self.api.taskStatus(task_id=r['data']['taskId'])
                         post = {'info': {}}
+                        r = self.api.update(post)
+
+                    post = {'info': {}}
+                    if r['data']['info']:
                         for oshash in r['data']['info']:
                             post['info'][oshash] = files['info'][oshash]
-                        r2 = self.api.update(post)
-                        #FIXME: should r2 be merged with r?
+                    print 'sending info for new files', len(post['info'])
+                    r = self.api.update(post)
 
                     filenames = {}
                     for f in files['files']:
                         filenames[f['oshash']] = f['path']
 
+                    print 'encoding videos', len(r['data']['data'])
                     if r['data']['data']:
                         for oshash in r['data']['data']:
                             data = {}
-                            filename = filenames[oshash]
-                            self.api.uploadVideo(os.path.join(prefix, filename), data, profile)
+                            if oshash in filenames:
+                                filename = filenames[oshash]
+                                self.api.uploadVideo(os.path.join(prefix, filename), data, profile)
+                            else:
+                                print oshash, "missing"
 
+                    print 'uploading files', len(r['data']['file'])
                     if r['data']['file']:
                         for oshash in r['data']['file']:
                             filename = filenames[oshash]
