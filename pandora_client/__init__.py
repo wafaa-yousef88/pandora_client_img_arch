@@ -160,6 +160,33 @@ class Client(object):
                     c.execute('UPDATE file SET deleted=? WHERE path=?', (deleted, f))
                 conn.commit()
 
+    def extract(self):
+        conn, c = self._conn()
+
+        volumes = {}
+        for name in self._config['volumes']:
+            path = self._config['volumes'][name]
+            path = os.path.normpath(path)
+
+            volumes[name] = {}
+            volumes[name]['path'] = path
+            if os.path.exists(path):
+                volumes[name]['available'] = True
+            else:
+                volumes[name]['available'] = False
+
+        #profile = self.api.encodingProfile()['data']['profile']
+        profile = '480p'
+        for name in volumes:
+            if volumes[name]['available']:
+                prefix = volumes[name]['path']
+                files = self.files(prefix)
+                for f in files['files']:
+                     filename = os.path.join(prefix, f['path'])
+                     if 'video' in files['info'][f['oshash']] and files['info'][f['oshash']]['video']:
+                         print filename.encode('utf-8')
+                         i = encode(filename, self.media_cache(), profile)
+
     def sync(self):
         conn, c = self._conn()
 

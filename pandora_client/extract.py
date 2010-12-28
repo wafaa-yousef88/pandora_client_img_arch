@@ -26,6 +26,14 @@ def frame(video, target, position):
     if fdir and not os.path.exists(fdir):
         os.makedirs(fdir)
 
+    '''
+    #oxframe
+    cmd = ['oxframe', '-i', video, '-p', str(position), '-o', target]
+    print cmd
+    r = run_command(cmd)
+    return r == 0
+    '''
+
     #mplayer
     cwd = os.getcwd()
     target = os.path.abspath(target)
@@ -125,6 +133,7 @@ def video(video, target, profile, info):
         '-vb', '%dk'%bitrate, '-g', '%d' % int(fps*2),
         '-s', '%dx%d'%(width, height),
         '-aspect', aspect,
+        '-deinterlace',
     ]
     cmd = ['ffmpeg', '-y', '-threads', '2', '-i', video] \
           + audio_settings \

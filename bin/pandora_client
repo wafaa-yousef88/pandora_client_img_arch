@@ -25,17 +25,12 @@ if __name__ == '__main__':
         parser.print_help()
         sys.exit()
 
-    if not args or args[0] not in ('scan', 'sync', 'clean'):
-        parser.error('you must specify a valid action. \n\t\tknown actions are: scan, sync, clean')
+    actions = ('scan', 'extract', 'sync', 'clean')
+    if not args or args[0] not in actions:
+        parser.error('you must specify a valid action. \n\t\tknown actions are: %s' % ', '.join(actions))
 
     action = args[0]
 
     c = pandora_client.Client(opts.config)
-    if action == 'scan':
-        c.scan()
-    if action == 'sync':
-        c.sync()
-    if action == 'clean':
-        c.clean()
-
+    getattr(c, action)()
 
