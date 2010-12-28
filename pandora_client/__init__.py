@@ -125,12 +125,13 @@ class Client(object):
             break
         if update:
             info = utils.avinfo(path)
-            oshash = info['oshash']
-            deleted = -1
-            t = (path, oshash, stat.st_atime, stat.st_ctime, stat.st_mtime,
-                 stat.st_size, json.dumps(info), created, modified, deleted)
-            c.execute(u'INSERT OR REPLACE INTO file values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', t)
-            conn.commit()
+            if info['size'] > 0:
+                oshash = info['oshash']
+                deleted = -1
+                t = (path, oshash, stat.st_atime, stat.st_ctime, stat.st_mtime,
+                     stat.st_size, json.dumps(info), created, modified, deleted)
+                c.execute(u'INSERT OR REPLACE INTO file values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', t)
+                conn.commit()
 
     def scan(self):
         print "check for new files"
