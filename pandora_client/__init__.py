@@ -52,11 +52,11 @@ class Client(object):
             with open(config) as f:
                 self._config = json.load(f)
         else:
-            self.config = config
+            self._config = config
         self.api = API(self._config['url'], media_cache=self.media_cache())
 
         if 'username' in self._config:
-            r = self.api.login(username=self._config['username'], password=self._config['password'])
+            r = self.api.signin(username=self._config['username'], password=self._config['password'])
             if r['status']['code'] == 200:
                 self.user = r['data']['user']
             else:
@@ -148,8 +148,9 @@ class Client(object):
                             filename = filename.decode('utf-8')
                         if not filename.startswith('._') and not filename in ('.DS_Store', ):
                             file_path = os.path.join(dirpath, filename)
-                            files.append(file_path)
-                            self.scan_file(file_path)
+                            if os.path.exists(file_path):
+                                files.append(file_path)
+                                self.scan_file(file_path)
             
             conn, c = self._conn()
             c.execute('SELECT path FROM file WHERE path LIKE ? AND deleted < 0', ["%s%%"%path])
@@ -295,8 +296,8 @@ class API(object):
             self.media_cache = default_media_cache 
 
         self.url = url
-        r = self._request('apidoc', {})
-        self._doc = r['data']['actions']
+        r = self._request('api', {'docs': True})
+        self._properties = r['data']['actions']
         self._actions = r['data']['actions'].keys()
         for a in r['data']['actions']:
             self._add_action(a)
@@ -314,11 +315,12 @@ class API(object):
                 else:
                     kw = None
             return self._request(action, kw)
-        method.__doc__ = self._doc[action]
+        method.__doc__ = self._properties[action]['doc']
         method.func_name = str(action)
         self._add_method(method, action)
 
     def _json_request(self, url, form):
+        result = {}
         try:
             request = urllib2.Request(url)
             request.add_header('User-agent', 'pandora_client/%s' % __version__)
@@ -347,9 +349,10 @@ class API(object):
             if DEBUG:
                 import traceback
                 traceback.print_exc()
-                with open('/tmp/error.html', 'w') as f:
-                    f.write(result)
-                os.system('firefox /tmp/error.html')
+                if result:
+                    with open('/tmp/error.html', 'w') as f:
+                        f.write(str(result))
+                    webbrowser.open_new_tab('/tmp/error.html')
             raise
 
     def _request(self, action, data=None):
