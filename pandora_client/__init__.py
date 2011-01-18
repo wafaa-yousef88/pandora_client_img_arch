@@ -25,6 +25,8 @@ default_media_cache = os.environ.get('oxMEDIA', os.path.expanduser('~/.ox/media'
 
 def encode(filename, prefix, profile):
     info = utils.avinfo(filename)
+    if not 'oshash' in info:
+        return None
     oshash = info['oshash']
     frames = []
     for pos in utils.video_frame_positions(info['duration']):
@@ -364,8 +366,11 @@ class API(object):
 
     def uploadVideo(self, filename, data, profile):
         if DEBUG:
-            print filename
+            print filename.encode('utf-8')
         i = encode(filename, self.media_cache, profile)
+        if not i:
+            print "failed"
+            return
 
         #upload frames
         form = ox.MultiPartForm()
