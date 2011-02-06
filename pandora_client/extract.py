@@ -93,8 +93,8 @@ def video(video, target, profile, info):
         audioquality = 1
         audiobitrate = None
         audiochannels = 1
-    elif profile == '270p':
-        height = 270
+    elif profile == '240p':
+        height = 240
 
         audiorate = 44100
         audioquality = 0
