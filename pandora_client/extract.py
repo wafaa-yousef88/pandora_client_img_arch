@@ -59,7 +59,6 @@ def video(video, target, profile, info):
             os.makedirs(fdir)
 
     dar = AspectRatio(info['video'][0]['display_aspect_ratio'])
-    profile_cmd = []
     '''
         look into
             lag
@@ -71,6 +70,8 @@ def video(video, target, profile, info):
             bt?
 
     '''
+    profile, format = profile.split('.')
+
     if profile == '720p':
         height = 720
 
@@ -133,7 +134,7 @@ def video(video, target, profile, info):
         '-vb', '%dk'%bitrate, '-g', '%d' % int(fps*2),
         '-s', '%dx%d'%(width, height),
         '-aspect', aspect,
-        '-deinterlace',
+        '-vf', 'yadif',
     ]
     cmd = ['ffmpeg', '-y', '-threads', '2', '-i', video] \
           + audio_settings \

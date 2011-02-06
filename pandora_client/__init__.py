@@ -37,7 +37,7 @@ def encode(filename, prefix, profile):
             print frame_f
             extract.frame(filename, frame_f, pos)
         frames.append(frame_f)
-    video_f = os.path.join(cache, '%s.webm' % profile)
+    video_f = os.path.join(cache, profile)
     if not os.path.exists(video_f):
         print video_f
         extract.video(filename, video_f, profile, info)
@@ -180,7 +180,7 @@ class Client(object):
                 volumes[name]['available'] = False
 
         #profile = self.api.encodingProfile()['data']['profile']
-        profile = '480p'
+        profile = '480p.webm'
         for name in volumes:
             if volumes[name]['available']:
                 prefix = volumes[name]['path']
