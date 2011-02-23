@@ -58,7 +58,9 @@ def video(video, target, profile, info):
         if not os.path.exists(fdir):
             os.makedirs(fdir)
 
-    dar = AspectRatio(info['video'][0]['display_aspect_ratio'])
+    if info['video']:
+        dar = AspectRatio(info['video'][0]['display_aspect_ratio'])
+
     '''
         look into
             lag
@@ -68,7 +70,6 @@ def video(video, target, profile, info):
             token_partitions=4
             level / speedlevel
             bt?
-
     '''
     profile, format = profile.split('.')
 
@@ -109,16 +110,26 @@ def video(video, target, profile, info):
         audiochannels = 1
 
     bpp = 0.17
-    fps = AspectRatio(info['video'][0]['framerate'])
+    if info['video']:
+        fps = AspectRatio(info['video'][0]['framerate'])
 
-    width = int(dar * height)
-    width += width % 2 
+        width = int(dar * height)
+        width += width % 2 
 
-    bitrate = height*width*fps*bpp/1000
-    aspect = dar.ratio
-    #use 1:1 pixel aspect ratio if dar is close to that
-    if abs(width/height - dar) < 0.02:
-        aspect = '%s:%s' % (width, height)
+        bitrate = height*width*fps*bpp/1000
+        aspect = dar.ratio
+        #use 1:1 pixel aspect ratio if dar is close to that
+        if abs(width/height - dar) < 0.02:
+            aspect = '%s:%s' % (width, height)
+
+        video_settings = [
+            '-vb', '%dk'%bitrate, '-g', '%d' % int(fps*2),
+            '-s', '%dx%d'%(width, height),
+            '-aspect', aspect,
+            '-vf', 'yadif',
+        ]
+    else:
+        video_settings = ['-vn']
 
     if info['audio']:
         audio_settings = ['-ar', str(audiorate), '-aq', str(audioquality)]
@@ -130,12 +141,6 @@ def video(video, target, profile, info):
     else:
         audio_settings = ['-an']
 
-    video_settings = [
-        '-vb', '%dk'%bitrate, '-g', '%d' % int(fps*2),
-        '-s', '%dx%d'%(width, height),
-        '-aspect', aspect,
-        '-vf', 'yadif',
-    ]
     cmd = ['ffmpeg', '-y', '-threads', '2', '-i', video] \
           + audio_settings \
           + video_settings \

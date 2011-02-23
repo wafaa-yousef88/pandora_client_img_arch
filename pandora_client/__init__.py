@@ -29,14 +29,15 @@ def encode(filename, prefix, profile):
         return None
     oshash = info['oshash']
     frames = []
-    for pos in utils.video_frame_positions(info['duration']):
-        frame_name = '%s.png' % pos
-        cache = os.path.join(prefix, os.path.join(*utils.hash_prefix(oshash)))
-        frame_f = os.path.join(cache, frame_name)
-        if not os.path.exists(frame_f):
-            print frame_f
-            extract.frame(filename, frame_f, pos)
-        frames.append(frame_f)
+    cache = os.path.join(prefix, os.path.join(*utils.hash_prefix(oshash)))
+    if info['video']:
+        for pos in utils.video_frame_positions(info['duration']):
+            frame_name = '%s.png' % pos
+            frame_f = os.path.join(cache, frame_name)
+            if not os.path.exists(frame_f):
+                print frame_f
+                extract.frame(filename, frame_f, pos)
+            frames.append(frame_f)
     video_f = os.path.join(cache, profile)
     if not os.path.exists(video_f):
         print video_f
