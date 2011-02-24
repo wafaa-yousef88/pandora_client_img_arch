@@ -141,7 +141,7 @@ def video(video, target, profile, info):
     else:
         audio_settings = ['-an']
 
-    cmd = ['ffmpeg', '-y', '-threads', '2', '-i', video] \
+    cmd = ['ffmpeg', '-y', '-i', video] \
           + audio_settings \
           + video_settings \
           + ['-f','webm', target]
