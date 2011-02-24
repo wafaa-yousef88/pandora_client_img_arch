@@ -91,10 +91,9 @@ class Client(object):
             conn.commit()
 
     def _conn(self):
-        dbfile = self._config['cache']
-        if not os.path.exists(os.path.dirname(dbfile)):
-            os.makedirs(os.path.dirname(dbfile))
-        db_conn = os.path.expanduser(dbfile)
+        db_conn = os.path.expanduser(self._config['cache'])
+        if not os.path.exists(os.path.dirname(db_conn)):
+            os.makedirs(os.path.dirname(db_conn))
         conn = sqlite3.connect(db_conn, timeout=10)
         conn.text_factory = sqlite3.OptimizedUnicode
         return conn, conn.cursor()
