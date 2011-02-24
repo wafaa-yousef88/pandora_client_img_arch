@@ -1,0 +1,8 @@
+{
+    "url": "http://pandora_url/api/",
+    "username": "username", "password": "password"
+    "cache": "~/.ox/client.sqlite",
+    "volumes": {
+        "my videos": "/home/example/Movies"
+    }
+}
