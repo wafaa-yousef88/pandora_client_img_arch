@@ -54,12 +54,7 @@ def frame(video, target, position):
 
 def video(video, target, profile, info):
     if not os.path.exists(target):
-        fdir = os.path.dirname(target)
-        if not os.path.exists(fdir):
-            os.makedirs(fdir)
-
-    if info['video']:
-        dar = AspectRatio(info['video'][0]['display_aspect_ratio'])
+        ox.makedirs(os.path.dirname(target))
 
     '''
         look into
@@ -110,9 +105,9 @@ def video(video, target, profile, info):
         audiochannels = 1
 
     bpp = 0.17
-    if info['video']:
+    if info['video'] and 'display_aspect_ratio' in info['video'][0]:
+        dar = AspectRatio(info['video'][0]['display_aspect_ratio'])
         fps = AspectRatio(info['video'][0]['framerate'])
-
         width = int(dar * height)
         width += width % 2 
 

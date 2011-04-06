@@ -23,8 +23,9 @@ __version__ = '0.1'
 DEBUG = True
 default_media_cache = os.environ.get('oxMEDIA', os.path.expanduser('~/.ox/media'))
 
-def encode(filename, prefix, profile):
-    info = utils.avinfo(filename)
+def encode(filename, prefix, profile, info=None):
+    if not info:
+        info = utils.avinfo(filename)
     if not 'oshash' in info:
         return None
     oshash = info['oshash']
@@ -60,9 +61,10 @@ class Client(object):
 
         if 'username' in self._config:
             r = self.api.signin(username=self._config['username'], password=self._config['password'])
-            if r['status']['code'] == 200:
+            if r['status']['code'] == 200 and not 'errors' in r['data']:
                 self.user = r['data']['user']
             else:
+                self.user = False
                 print 'login failed'
 
         conn, c = self._conn()
@@ -112,6 +114,13 @@ class Client(object):
         conn, c = self._conn()
         c.execute(u'INSERT OR REPLACE INTO setting values (?, ?)', (key, str(value)))
         conn.commit()
+
+    def info(self, oshash):
+        conn, c = self._conn()
+        c.execute('SELECT info FROM file WHERE oshash = ?', (oshash, ))
+        for row in c:
+            return json.loads(row[2])
+        return None 
 
     def scan_file(self, path):
         conn, c = self._conn()
@@ -182,19 +191,26 @@ class Client(object):
             else:
                 volumes[name]['available'] = False
 
-        #profile = self.api.encodingProfile()['data']['profile']
-        profile = '480p.webm'
+        profile = self.api.encodingProfile()['data']['profile']
+        #profile = '480p.webm'
         for name in volumes:
             if volumes[name]['available']:
                 prefix = volumes[name]['path']
                 files = self.files(prefix)
                 for f in files['files']:
                      filename = os.path.join(prefix, f['path'])
-                     if 'video' in files['info'][f['oshash']] and files['info'][f['oshash']]['video']:
+                     info = files['info'][f['oshash']]
+                     if 'video' in info and \
+                        info['video'] and \
+                        '/extras' not in filename.lower() and \
+                        '/versions' not in filename.lower():
                          print filename.encode('utf-8')
-                         i = encode(filename, self.media_cache(), profile)
+                         i = encode(filename, self.media_cache(), profile, info)
 
     def sync(self):
+        if not self.user:
+            print "you need to login"
+            return
         conn, c = self._conn()
 
         volumes = {}
@@ -214,9 +230,12 @@ class Client(object):
             if volumes[name]['available']:
                 prefix = volumes[name]['path']
                 files = self.files(prefix)
-                files['volume'] = name
+                post = {}
+                post['files'] = files['files']
+                post['volume'] = name
                 print 'sending list of files'
-                r = self.api.update(files)
+                print len(json.dumps(post))
+                r = self.api.update(post)
                 if r['status']['code'] == 200:
                     #backend works on update request asyncronously, wait for it to finish
                     if 'taskId' in r['data']:
@@ -225,19 +244,31 @@ class Client(object):
                         while t['data']['status'] == 'PENDING':
                             time.sleep(5)
                             t = self.api.taskStatus(task_id=r['data']['taskId'])
+                        #send empty list to get updated list of requested info/files/data
                         post = {'info': {}}
                         r = self.api.update(post)
 
-                    post = {'info': {}}
                     if r['data']['info']:
-                        for oshash in r['data']['info']:
-                            post['info'][oshash] = files['info'][oshash]
-                    print 'sending info for new files', len(post['info'])
-                    r = self.api.update(post)
+                        info = r['data']['info']
+                        max_info = 100
+                        for offset in range(0, len(info), max_info):
+                            post = {'info': {}}
+                            for oshash in info[offset:offset+max_info]:
+                                if oshash in files['info']:
+                                    post['info'][oshash] = files['info'][oshash]
+                            print 'sending info for new files', len(post['info'])
+                            r = self.api.update(post)
 
                     filenames = {}
                     for f in files['files']:
                         filenames[f['oshash']] = f['path']
+                    
+                    print 'uploading files', len(r['data']['file'])
+                    if r['data']['file']:
+                        for oshash in r['data']['file']:
+                            if oshash in filenames:
+                                filename = filenames[oshash]
+                                self.api.uploadData(os.path.join(prefix, filename), oshash)
 
                     print 'encoding videos', len(r['data']['data'])
                     if r['data']['data']:
@@ -245,17 +276,14 @@ class Client(object):
                             data = {}
                             if oshash in filenames:
                                 filename = filenames[oshash]
-                                self.api.uploadVideo(os.path.join(prefix, filename), data, profile)
+                                info = files['info'][oshash]
+                                self.api.uploadVideo(os.path.join(prefix, filename),
+                                                     data, profile, info)
                             else:
                                 print oshash, "missing"
-
-                    print 'uploading files', len(r['data']['file'])
-                    if r['data']['file']:
-                        for oshash in r['data']['file']:
-                            filename = filenames[oshash]
-                            self.api.uploadData(os.path.join(prefix, filename), oshash)
                 else:
                     print "updating volume", name, "failed"
+                    print r
 
     def files(self, prefix):
         conn, c = self._conn()
@@ -367,14 +395,14 @@ class API(object):
             form.add_field('data', json.dumps(data))
         return self._json_request(self.url, form)
 
-    def uploadVideo(self, filename, data, profile):
+    def uploadVideo(self, filename, data, profile, info=None):
         if DEBUG:
             print filename.encode('utf-8')
-        i = encode(filename, self.media_cache, profile)
+        i = encode(filename, self.media_cache, profile, info)
         if not i:
             print "failed"
             return
-
+        print i
         #upload frames
         form = ox.MultiPartForm()
         form.add_field('action', 'upload')
