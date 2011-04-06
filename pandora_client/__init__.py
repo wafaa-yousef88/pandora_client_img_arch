@@ -251,13 +251,18 @@ class Client(object):
                     if r['data']['info']:
                         info = r['data']['info']
                         max_info = 100
-                        for offset in range(0, len(info), max_info):
-                            post = {'info': {}}
+                        total = len(info)
+                        for offset in range(0, total, max_info):
+                            post = {'info': {}, 'upload': True}
                             for oshash in info[offset:offset+max_info]:
                                 if oshash in files['info']:
                                     post['info'][oshash] = files['info'][oshash]
-                            print 'sending info for new files', len(post['info'])
+                            print 'sending info for new files', len(post['info']), offset, total
                             r = self.api.update(post)
+                    
+                    #send empty list to get updated list of requested info/files/data
+                    post = {'info': {}}
+                    r = self.api.update(post)
 
                     filenames = {}
                     for f in files['files']:
