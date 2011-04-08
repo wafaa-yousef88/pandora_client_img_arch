@@ -58,14 +58,7 @@ class Client(object):
         else:
             self._config = config
         self.api = API(self._config['url'], media_cache=self.media_cache())
-
-        if 'username' in self._config:
-            r = self.api.signin(username=self._config['username'], password=self._config['password'])
-            if r['status']['code'] == 200 and not 'errors' in r['data']:
-                self.user = r['data']['user']
-            else:
-                self.user = False
-                print 'login failed'
+        self.signin()
 
         conn, c = self._conn()
 
@@ -121,6 +114,17 @@ class Client(object):
         for row in c:
             return json.loads(row[2])
         return None 
+
+    def signin(self):
+        if 'username' in self._config:
+            r = self.api.signin(username=self._config['username'], password=self._config['password'])
+            if r['status']['code'] == 200 and not 'errors' in r['data']:
+                self.user = r['data']['user']
+            else:
+                self.user = False
+                print 'login failed'
+                return False
+            return True
 
     def scan_file(self, path):
         conn, c = self._conn()
@@ -282,8 +286,12 @@ class Client(object):
                             if oshash in filenames:
                                 filename = filenames[oshash]
                                 info = files['info'][oshash]
-                                self.api.uploadVideo(os.path.join(prefix, filename),
-                                                     data, profile, info)
+                                if not self.api.uploadVideo(os.path.join(prefix, filename),
+                                                            data, profile, info):
+                                    if not self.signin():
+                                        print "failed to login again"
+                                        return
+
                             else:
                                 print oshash, "missing"
                 else:
@@ -423,9 +431,14 @@ class API(object):
         #upload video in chunks
         url = self.url + 'upload/' + '?profile=' + str(profile) + '&oshash=' + i['oshash']
         ogg = Firefogg(cj=self._cj, debug=True)
-        ogg.upload(url, i['video'], data)
-        if DEBUG:
-            print "done"
+        if not ogg.upload(url, i['video'], data):
+            if DEBUG:
+                print "failed"
+            return False
+        else:
+            if DEBUG:
+                print "done"
+        return True
 
     def uploadData(self, filename, oshash):
         form = ox.MultiPartForm()
