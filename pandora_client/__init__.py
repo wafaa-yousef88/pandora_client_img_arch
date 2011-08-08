@@ -419,31 +419,38 @@ class API(object):
         #upload frames
         form = ox.MultiPartForm()
         form.add_field('action', 'upload')
-        form.add_field('oshash', str(i['oshash']))
+        form.add_field('id', str(i['oshash']))
         for key in data:
             form.add_field(str(key), data[key].encode('utf-8'))
         for frame in i['frames']:
             fname = os.path.basename(frame)
             if isinstance(fname, unicode): fname = fname.encode('utf-8')
-            form.add_file('frame', fname, open(frame, 'rb'))
+            if os.path.exists(frame):
+                form.add_file('frame', fname, open(frame, 'rb'))
         r = self._json_request(self.url, form)
-
-        #upload video in chunks
-        url = self.url + 'upload/' + '?profile=' + str(profile) + '&oshash=' + i['oshash']
-        ogg = Firefogg(cj=self._cj, debug=True)
-        if not ogg.upload(url, i['video'], data):
+        if os.path.exists(i['video']):
+            #upload video in chunks
+            url = self.url + 'upload/' + '?profile=' + str(profile) + '&id=' + i['oshash']
+            ogg = Firefogg(cj=self._cj, debug=True)
+            if not ogg.upload(url, i['video'], data):
+                if DEBUG:
+                    print "failed"
+                return False
+            else:
+                if DEBUG:
+                    print "done"
+        else:
             if DEBUG:
                 print "failed"
             return False
-        else:
-            if DEBUG:
-                print "done"
         return True
 
     def uploadData(self, filename, oshash):
+        print filename
+        print os.stat(filename)
         form = ox.MultiPartForm()
         form.add_field('action', 'upload')
-        form.add_field('oshash', str(oshash))
+        form.add_field('id', str(oshash))
         fname = os.path.basename(filename)
         if isinstance(fname, unicode): fname = fname.encode('utf-8')
         form.add_file('file', fname, open(filename, 'rb'))
