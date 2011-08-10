@@ -237,8 +237,7 @@ class Client(object):
                 post = {}
                 post['files'] = files['files']
                 post['volume'] = name
-                print 'sending list of files'
-                print len(json.dumps(post))
+                print 'sending list of files', len(post['files'])
                 r = self.api.update(post)
                 if r['status']['code'] == 200:
                     #backend works on update request asyncronously, wait for it to finish
@@ -261,8 +260,9 @@ class Client(object):
                             for oshash in info[offset:offset+max_info]:
                                 if oshash in files['info']:
                                     post['info'][oshash] = files['info'][oshash]
-                            print 'sending info for new files', len(post['info']), offset, total
-                            r = self.api.update(post)
+                            if len(post['info']):
+                                print 'sending info for new files', len(post['info']), offset, total
+                                r = self.api.update(post)
                     
                     #send empty list to get updated list of requested info/files/data
                     post = {'info': {}}
@@ -293,7 +293,8 @@ class Client(object):
                                         return
 
                             else:
-                                print oshash, "missing"
+                                pass
+                                #print oshash, "missing"
                 else:
                     print "updating volume", name, "failed"
                     print r
@@ -334,8 +335,12 @@ class API(object):
             self._cj = cj
         else:
             self._cj = cookielib.CookieJar()
-        self._opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(self._cj))
-        urllib2.install_opener(self._opener)
+        self._opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(self._cj),
+                                                   urllib2.HTTPHandler(debuglevel=0))
+
+        self._opener.addheaders = [
+            ('User-Agent', 'pandora_client/%s' % __version__)
+        ]
 
         self.media_cache = media_cache
         if not self.media_cache:
@@ -368,13 +373,14 @@ class API(object):
     def _json_request(self, url, form):
         result = {}
         try:
-            request = urllib2.Request(url)
-            request.add_header('User-agent', 'pandora_client/%s' % __version__)
+            request = urllib2.Request(str(url))
             body = str(form)
             request.add_header('Content-type', form.get_content_type())
             request.add_header('Content-length', len(body))
+            print 'content-length', len(body), type(body)
+            print 'Content-type', form.get_content_type()
             request.add_data(body)
-            result = urllib2.urlopen(request).read().strip()
+            result = self._opener.open(request).read().strip()
             return json.loads(result)
         except urllib2.HTTPError, e:
             if DEBUG:
@@ -419,18 +425,19 @@ class API(object):
         #upload frames
         form = ox.MultiPartForm()
         form.add_field('action', 'upload')
-        form.add_field('id', str(i['oshash']))
+        form.add_field('id', i['oshash'])
         for key in data:
-            form.add_field(str(key), data[key].encode('utf-8'))
+            form.add_field(key, data[key])
         for frame in i['frames']:
             fname = os.path.basename(frame)
-            if isinstance(fname, unicode): fname = fname.encode('utf-8')
             if os.path.exists(frame):
                 form.add_file('frame', fname, open(frame, 'rb'))
+        print self.url
         r = self._json_request(self.url, form)
         if os.path.exists(i['video']):
-            #upload video in chunks
             url = self.url + 'upload/' + '?profile=' + str(profile) + '&id=' + i['oshash']
+            if DEBUG:
+                print "upload video in chunks", url
             ogg = Firefogg(cj=self._cj, debug=True)
             if not ogg.upload(url, i['video'], data):
                 if DEBUG:
