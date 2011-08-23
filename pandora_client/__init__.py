@@ -263,41 +263,57 @@ class Client(object):
                             if len(post['info']):
                                 print 'sending info for new files', len(post['info']), offset, total
                                 r = self.api.update(post)
-                    
-                    #send empty list to get updated list of requested info/files/data
-                    post = {'info': {}}
-                    r = self.api.update(post)
 
-                    filenames = {}
-                    for f in files['files']:
-                        filenames[f['oshash']] = f['path']
-                    
-                    print 'uploading files', len(r['data']['file'])
-                    if r['data']['file']:
-                        for oshash in r['data']['file']:
-                            if oshash in filenames:
-                                filename = filenames[oshash]
-                                self.api.uploadData(os.path.join(prefix, filename), oshash)
+    def upload(self):
+        if not self.user:
+            print "you need to login"
+            return
+        conn, c = self._conn()
 
-                    print 'encoding videos', len(r['data']['data'])
-                    if r['data']['data']:
-                        for oshash in r['data']['data']:
-                            data = {}
-                            if oshash in filenames:
-                                filename = filenames[oshash]
-                                info = files['info'][oshash]
-                                if not self.api.uploadVideo(os.path.join(prefix, filename),
-                                                            data, profile, info):
-                                    if not self.signin():
-                                        print "failed to login again"
-                                        return
+        volumes = {}
+        for name in self._config['volumes']:
+            path = self._config['volumes'][name]
+            path = os.path.normpath(path)
 
-                            else:
-                                pass
-                                #print oshash, "missing"
-                else:
-                    print "updating volume", name, "failed"
-                    print r
+            volumes[name] = {}
+            volumes[name]['path'] = path
+            if os.path.exists(path):
+                volumes[name]['available'] = True
+            else:
+                volumes[name]['available'] = False
+
+        profile = self.api.encodingProfile()['data']['profile']
+        for name in volumes:
+            if volumes[name]['available']:
+                prefix = volumes[name]['path']
+                files = self.files(prefix)
+
+        filenames = {}
+        for f in files['files']:
+            filenames[f['oshash']] = f['path']
+        #send empty list to get updated list of requested info/files/data
+        post = {'info': {}}
+        r = self.api.update(post)
+        
+        print 'uploading files', len(r['data']['file'])
+        if r['data']['file']:
+            for oshash in r['data']['file']:
+                if oshash in filenames:
+                    filename = filenames[oshash]
+                    self.api.uploadData(os.path.join(prefix, filename), oshash)
+
+        print 'encoding videos', len(r['data']['data'])
+        if r['data']['data']:
+            for oshash in r['data']['data']:
+                data = {}
+                if oshash in filenames:
+                    filename = filenames[oshash]
+                    info = files['info'][oshash]
+                    if not self.api.uploadVideo(os.path.join(prefix, filename),
+                                                data, profile, info):
+                        if not self.signin():
+                            print "failed to login again"
+                            return
 
     def files(self, prefix):
         conn, c = self._conn()
