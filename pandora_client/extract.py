@@ -34,6 +34,7 @@ def frame(video, target, position):
     return r == 0
     '''
 
+    '''
     #mplayer
     cwd = os.getcwd()
     target = os.path.abspath(target)
@@ -50,6 +51,11 @@ def frame(video, target, position):
         r = 1
     os.chdir(cwd)
     shutil.rmtree(framedir)
+    return r == 0
+    '''
+    #ffmpeg
+    cmd = ['ffmpeg', '-y', '-ss', str(position), '-i', video, '-f', 'mjpeg', '-an', '-vframes', '1', target]
+    r = run_command(cmd)
     return r == 0
 
 def video(video, target, profile, info):
