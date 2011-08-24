@@ -469,8 +469,8 @@ class API(object):
         return True
 
     def uploadData(self, filename, oshash):
-        print filename
-        print os.stat(filename)
+        if DEBUG:
+            print 'upload', filename
         form = ox.MultiPartForm()
         form.add_field('action', 'upload')
         form.add_field('id', str(oshash))
