@@ -54,7 +54,7 @@ def frame(video, target, position):
     return r == 0
     '''
     #ffmpeg
-    cmd = ['ffmpeg', '-y', '-ss', str(position), '-i', video, '-f', 'mjpeg', '-an', '-vframes', '1', target]
+    cmd = ['ffmpeg', '-y', '-ss', str(position), '-i', video, '-an', '-vframes', '1', target]
     r = run_command(cmd)
     return r == 0
 
