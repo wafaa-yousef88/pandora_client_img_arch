@@ -8,9 +8,13 @@ except:
 
 def get_bzr_version():
     import os
-    rev = int(os.popen('bzr revno').read())
-    if rev:
-        return u'%s' % rev
+    info = os.path.join(os.path.dirname(__file__), '.bzr/branch/last-revision')
+    if os.path.exists(info):
+        f = open(info)
+        rev = int(f.read().split()[0])
+        f.close()
+        if rev:
+            return u'%s' % rev
     return u'unknown'
 
 setup(
