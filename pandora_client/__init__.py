@@ -58,6 +58,7 @@ class Client(object):
         else:
             self._config = config
         self.api = API(self._config['url'], media_cache=self.media_cache())
+        self.api.DEBUG = DEBUG
         self.signin()
 
         conn, c = self._conn()
@@ -93,6 +94,9 @@ class Client(object):
         conn.text_factory = sqlite3.OptimizedUnicode
         return conn, conn.cursor()
 
+    def get_profile(self):
+        return "%sp.webm" % max(self.api._config['video']['resolutions'])
+
     def media_cache(self):
         return os.path.expanduser(self._config.get('media-cache', default_media_cache))
     
@@ -124,6 +128,9 @@ class Client(object):
                 self.user = False
                 print 'login failed'
                 return False
+            r = self.api.init()
+            if r['status']['code'] == 200:
+                self.api._config = r['data']['site']
             return True
 
     def scan_file(self, path):
@@ -195,8 +202,7 @@ class Client(object):
             else:
                 volumes[name]['available'] = False
 
-        profile = self.api.encodingProfile()['data']['profile']
-        #profile = '480p.webm'
+        profile = self.get_profile()
         for name in volumes:
             if volumes[name]['available']:
                 prefix = volumes[name]['path']
@@ -363,23 +369,23 @@ class API(ox.API):
         if not i:
             print "failed"
             return
-        print i
+
         #upload frames
-        form = ox.MultiPartForm()
-        form.add_field('action', 'upload')
-        form.add_field('id', i['oshash'])
-        for key in data:
-            form.add_field(key, data[key])
-        for frame in i['frames']:
-            fname = os.path.basename(frame)
-            if os.path.exists(frame):
-                form.add_file('frame', fname, open(frame, 'rb'))
-        print self.url
+        if self._config['media']['importPosterFrames']:
+            form = ox.MultiPartForm()
+            form.add_field('action', 'upload')
+            form.add_field('id', i['oshash'])
+            for key in data:
+                form.add_field(key, data[key])
+            for frame in i['frames']:
+                fname = os.path.basename(frame)
+                if os.path.exists(frame):
+                    form.add_file('frame', fname, open(frame, 'rb'))
         r = self._json_request(self.url, form)
+
+        #upload video
         if os.path.exists(i['video']):
             url = self.url + 'upload/' + '?profile=' + str(profile) + '&id=' + i['oshash']
-            if DEBUG:
-                print "upload video in chunks", url
             ogg = Firefogg(cj=self._cj, debug=True)
             if not ogg.upload(url, i['video'], data):
                 if DEBUG:
