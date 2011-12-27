@@ -381,7 +381,7 @@ class API(ox.API):
                 fname = os.path.basename(frame)
                 if os.path.exists(frame):
                     form.add_file('frame', fname, open(frame, 'rb'))
-        r = self._json_request(self.url, form)
+            r = self._json_request(self.url, form)
 
         #upload video
         if os.path.exists(i['video']):
