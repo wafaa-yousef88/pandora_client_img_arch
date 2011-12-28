@@ -235,7 +235,7 @@ class Client(object):
             else:
                 volumes[name]['available'] = False
 
-        profile = self.api.encodingProfile()['data']['profile']
+        profile = self.get_profile()
         for name in volumes:
             if volumes[name]['available']:
                 prefix = volumes[name]['path']
@@ -288,7 +288,7 @@ class Client(object):
             else:
                 volumes[name]['available'] = False
 
-        profile = self.api.encodingProfile()['data']['profile']
+        profile = self.get_profile()
         for name in volumes:
             if volumes[name]['available']:
                 prefix = volumes[name]['path']
