@@ -19,8 +19,8 @@ import extract
 import utils
 
 
-__version__ = '0.1'
-DEBUG = True
+__version__ = '0.2'
+DEBUG = False
 default_media_cache = os.environ.get('oxMEDIA', os.path.expanduser('~/.ox/media'))
 
 def encode(filename, prefix, profile, info=None):
@@ -41,7 +41,6 @@ def encode(filename, prefix, profile, info=None):
             frames.append(frame_f)
     video_f = os.path.join(cache, profile)
     if not os.path.exists(video_f):
-        print video_f
         extract.video(filename, video_f, profile, info)
     return {
         'info': info,
@@ -116,8 +115,16 @@ class Client(object):
         conn, c = self._conn()
         c.execute('SELECT info FROM file WHERE oshash = ?', (oshash, ))
         for row in c:
-            return json.loads(row[2])
+            return json.loads(row[0])
         return None 
+
+    def path(self, oshash):
+        conn, c = self._conn()
+        c.execute('SELECT path FROM file WHERE oshash = ?', (oshash, ))
+        paths = []
+        for row in c:
+            paths.append(row[0])
+        return paths
 
     def signin(self):
         if 'username' in self._config:
@@ -159,7 +166,7 @@ class Client(object):
                 conn.commit()
 
     def scan(self):
-        print "check for new files"
+        print "Checking for new files ..."
         for name in self._config['volumes']:
             path = self._config['volumes'][name]
             path = os.path.normpath(path)
@@ -181,11 +188,15 @@ class Client(object):
             c.execute('SELECT path FROM file WHERE path LIKE ? AND deleted < 0', ["%s%%"%path])
             known_files = [r[0] for r in c.fetchall()]
             deleted_files = filter(lambda f: f not in files, known_files)
+
             if deleted_files:
                 deleted = time.mktime(time.localtime())
                 for f in deleted_files:
                     c.execute('UPDATE file SET deleted=? WHERE path=?', (deleted, f))
                 conn.commit()
+
+            print "Scanned volume %s: %s files, %s new, %s deleted" % (
+                    name, len(files), len(files) - len(known_files), len(deleted_files))
 
     def extract(self):
         conn, c = self._conn()
@@ -235,7 +246,6 @@ class Client(object):
             else:
                 volumes[name]['available'] = False
 
-        profile = self.get_profile()
         for name in volumes:
             if volumes[name]['available']:
                 prefix = volumes[name]['path']
@@ -243,13 +253,13 @@ class Client(object):
                 post = {}
                 post['files'] = files['files']
                 post['volume'] = name
-                print 'sending list of files', len(post['files'])
+                print 'Sending list of files in %s (%s total)' % (name, len(post['files']))
                 r = self.api.update(post)
                 if r['status']['code'] == 200:
                     #backend works on update request asyncronously, wait for it to finish
                     if 'taskId' in r['data']:
                         t = self.api.taskStatus(task_id=r['data']['taskId'])
-                        print 'waiting for server'
+                        print 'Waiting for server ...'
                         while t['data']['status'] == 'PENDING':
                             time.sleep(5)
                             t = self.api.taskStatus(task_id=r['data']['taskId'])
@@ -261,14 +271,34 @@ class Client(object):
                         info = r['data']['info']
                         max_info = 100
                         total = len(info)
+                        print 'Sending info for %s files' % total
                         for offset in range(0, total, max_info):
                             post = {'info': {}, 'upload': True}
                             for oshash in info[offset:offset+max_info]:
                                 if oshash in files['info']:
                                     post['info'][oshash] = files['info'][oshash]
                             if len(post['info']):
-                                print 'sending info for new files', len(post['info']), offset, total
                                 r = self.api.update(post)
+        if r['data']['data']:
+            files = []
+            for f in r['data']['data']:
+                for path in self.path(f):
+                    if os.path.exists(path):
+                        files.append(path)
+                        break
+            if files:
+                print '\nCould encoded and upload %s videos:\n' % len(files)
+                print '\n'.join(files)
+        if r['data']['file']:
+            files = []
+            for f in r['data']['file']:
+                for path in self.path(f):
+                    if os.path.exists(path):
+                        files.append(path)
+                        break
+            if files:
+                print '\nCould upload %s subtitles:\n' % len(files)
+                print '\n'.join(files)
 
     def upload(self):
         if not self.user:
@@ -301,14 +331,14 @@ class Client(object):
         post = {'info': {}}
         r = self.api.update(post)
         
-        print 'uploading files', len(r['data']['file'])
+        print 'Uploading %s files' % len(r['data']['file'])
         if r['data']['file']:
             for oshash in r['data']['file']:
                 if oshash in filenames:
                     filename = filenames[oshash]
                     self.api.uploadData(os.path.join(prefix, filename), oshash)
 
-        print 'encoding videos', len(r['data']['data'])
+        print 'Encoding and uploading %s videos' % len(r['data']['data'])
         if r['data']['data']:
             for oshash in r['data']['data']:
                 data = {}
@@ -384,19 +414,16 @@ class API(ox.API):
             r = self._json_request(self.url, form)
 
         #upload video
+        print "Uploading", filename
         if os.path.exists(i['video']):
             url = self.url + 'upload/' + '?profile=' + str(profile) + '&id=' + i['oshash']
-            ogg = Firefogg(cj=self._cj, debug=True)
+            ogg = Firefogg(cj=self._cj, debug=DEBUG)
             if not ogg.upload(url, i['video'], data):
                 if DEBUG:
                     print "failed"
                 return False
-            else:
-                if DEBUG:
-                    print "done"
         else:
-            if DEBUG:
-                print "failed"
+            print "Failed"
             return False
         return True
 

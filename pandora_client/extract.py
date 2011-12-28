@@ -73,6 +73,7 @@ def video(video, target, profile, info):
             bt?
     '''
     profile, format = profile.split('.')
+    bpp = 0.17
 
     if profile == '720p':
         height = 720
@@ -110,7 +111,6 @@ def video(video, target, profile, info):
         audiobitrate = '22k'
         audiochannels = 1
 
-    bpp = 0.17
     if info['video'] and 'display_aspect_ratio' in info['video'][0]:
         dar = AspectRatio(info['video'][0]['display_aspect_ratio'])
         fps = AspectRatio(info['video'][0]['framerate'])
@@ -146,7 +146,6 @@ def video(video, target, profile, info):
           + audio_settings \
           + video_settings \
           + ['-f','webm', target]
-    print cmd
 
     #r = run_command(cmd, -1)
     p = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE)
@@ -161,13 +160,12 @@ def video(video, target, profile, info):
     try:
         p.wait()
         r = p.returncode
+        print 'Input:\t', video
+        print 'Output:\t', target
     except KeyboardInterrupt:
         r = 1
-        print "\ncleaning up unfinished encoding:\nremoving", target
+        print "\n\ncleanup unfinished encoding:\nremoving", target
         print "\n"
         os.unlink(target)
         sys.exit(1)
-
-    print "done"
     return r == 0
-
