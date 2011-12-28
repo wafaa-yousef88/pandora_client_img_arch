@@ -31,6 +31,10 @@ if __name__ == '__main__':
 
     action = args[0]
 
-    c = pandora_client.Client(opts.config)
+    if action == 'extract':
+        offline = True
+    else:
+        offline = False
+    c = pandora_client.Client(opts.config, offline)
     getattr(c, action)()
 

@@ -50,15 +50,17 @@ def encode(filename, prefix, profile, info=None):
     }
 
 class Client(object):
-    def __init__(self, config):
+    def __init__(self, config, offline=False):
         if isinstance(config, basestring):
             with open(config) as f:
                 self._config = json.load(f)
         else:
             self._config = config
-        self.api = API(self._config['url'], media_cache=self.media_cache())
-        self.api.DEBUG = DEBUG
-        self.signin()
+
+        self.profile = self._config.get('profile', '480p.webm')
+
+        if not offline:
+            self.online()
 
         conn, c = self._conn()
 
@@ -93,9 +95,6 @@ class Client(object):
         conn.text_factory = sqlite3.OptimizedUnicode
         return conn, conn.cursor()
 
-    def get_profile(self):
-        return "%sp.webm" % max(self.api._config['video']['resolutions'])
-
     def media_cache(self):
         return os.path.expanduser(self._config.get('media-cache', default_media_cache))
     
@@ -125,6 +124,12 @@ class Client(object):
         for row in c:
             paths.append(row[0])
         return paths
+
+    def online(self):
+        self.api = API(self._config['url'], media_cache=self.media_cache())
+        self.api.DEBUG = DEBUG
+        self.signin()
+        self.profile = "%sp.webm" % max(self.api._config['video']['resolutions'])
 
     def signin(self):
         if 'username' in self._config:
@@ -213,7 +218,6 @@ class Client(object):
             else:
                 volumes[name]['available'] = False
 
-        profile = self.get_profile()
         for name in volumes:
             if volumes[name]['available']:
                 prefix = volumes[name]['path']
@@ -226,7 +230,7 @@ class Client(object):
                         '/extras' not in filename.lower() and \
                         '/versions' not in filename.lower():
                          print filename.encode('utf-8')
-                         i = encode(filename, self.media_cache(), profile, info)
+                         i = encode(filename, self.media_cache(), self.profile, info)
 
     def sync(self):
         if not self.user:
@@ -318,7 +322,6 @@ class Client(object):
             else:
                 volumes[name]['available'] = False
 
-        profile = self.get_profile()
         for name in volumes:
             if volumes[name]['available']:
                 prefix = volumes[name]['path']
@@ -346,7 +349,7 @@ class Client(object):
                     filename = filenames[oshash]
                     info = files['info'][oshash]
                     if not self.api.uploadVideo(os.path.join(prefix, filename),
-                                                data, profile, info):
+                                                data, self.profile, info):
                         if not self.signin():
                             print "failed to login again"
                             return
