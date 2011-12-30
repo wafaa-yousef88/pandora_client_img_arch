@@ -334,15 +334,15 @@ class Client(object):
         post = {'info': {}}
         r = self.api.update(post)
         
-        print 'Uploading %s files' % len(r['data']['file'])
         if r['data']['file']:
+            print 'Uploading %s files' % len(r['data']['file'])
             for oshash in r['data']['file']:
                 if oshash in filenames:
                     filename = filenames[oshash]
                     self.api.uploadData(os.path.join(prefix, filename), oshash)
 
-        print 'Encoding and uploading %s videos' % len(r['data']['data'])
         if r['data']['data']:
+            print 'Encoding and uploading %s videos' % len(r['data']['data'])
             for oshash in r['data']['data']:
                 data = {}
                 if oshash in filenames:
@@ -417,8 +417,9 @@ class API(ox.API):
             r = self._json_request(self.url, form)
 
         #upload video
-        print "Uploading", filename
         if os.path.exists(i['video']):
+            size = ox.formatBytes(os.path.getsize(i['video']))
+            print "Uploading %s (%s) of %s" % (profile, size, filename)
             url = self.url + 'upload/' + '?profile=' + str(profile) + '&id=' + i['oshash']
             ogg = Firefogg(cj=self._cj, debug=DEBUG)
             if not ogg.upload(url, i['video'], data):
