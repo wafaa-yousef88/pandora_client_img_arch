@@ -1,27 +1,27 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 # vi:si:et:sw=4:sts=4:ts=4
-# GPL 2010
+# GPL 2012
 from __future__ import division, with_statement
 import os
-import urllib2
-import cookielib
 import json
 import sqlite3
 import time
 import shutil
-import webbrowser
+import sys
 
-from firefogg import Firefogg
 import ox
 
 import extract
 import utils
 
 
-__version__ = '0.2'
 DEBUG = False
+
+__version__ = '0.2'
+CHUNK_SIZE = 1024*1024
 default_media_cache = os.environ.get('oxMEDIA', os.path.expanduser('~/.ox/media'))
+
 
 def encode(filename, prefix, profile, info=None):
     if not info:
@@ -41,6 +41,7 @@ def encode(filename, prefix, profile, info=None):
             frames.append(frame_f)
     video_f = os.path.join(cache, profile)
     if not os.path.exists(video_f):
+        return False
         extract.video(filename, video_f, profile, info)
     return {
         'info': info,
@@ -171,7 +172,7 @@ class Client(object):
                 conn.commit()
 
     def scan(self):
-        print "Checking for new files ..."
+        print "checking for new files ..."
         for name in self._config['volumes']:
             path = self._config['volumes'][name]
             path = os.path.normpath(path)
@@ -200,7 +201,7 @@ class Client(object):
                     c.execute('UPDATE file SET deleted=? WHERE path=?', (deleted, f))
                 conn.commit()
 
-            print "Scanned volume %s: %s files, %s new, %s deleted" % (
+            print "scanned volume %s: %s files, %s new, %s deleted" % (
                     name, len(files), len(files) - len(known_files), len(deleted_files))
 
     def extract(self):
@@ -257,13 +258,13 @@ class Client(object):
                 post = {}
                 post['files'] = files['files']
                 post['volume'] = name
-                print 'Sending list of files in %s (%s total)' % (name, len(post['files']))
+                print 'sending list of files in %s (%s total)' % (name, len(post['files']))
                 r = self.api.update(post)
                 if r['status']['code'] == 200:
                     #backend works on update request asyncronously, wait for it to finish
                     if 'taskId' in r['data']:
                         t = self.api.taskStatus(task_id=r['data']['taskId'])
-                        print 'Waiting for server ...'
+                        print 'waiting for server ...'
                         while t['data']['status'] == 'PENDING':
                             time.sleep(5)
                             t = self.api.taskStatus(task_id=r['data']['taskId'])
@@ -275,7 +276,7 @@ class Client(object):
                         info = r['data']['info']
                         max_info = 100
                         total = len(info)
-                        print 'Sending info for %s files' % total
+                        print 'sending info for %s files' % total
                         for offset in range(0, total, max_info):
                             post = {'info': {}, 'upload': True}
                             for oshash in info[offset:offset+max_info]:
@@ -291,7 +292,7 @@ class Client(object):
                         files.append(path)
                         break
             if files:
-                print '\nCould encoded and upload %s videos:\n' % len(files)
+                print '\ncould encoded and upload %s videos:\n' % len(files)
                 print '\n'.join(files)
         if r['data']['file']:
             files = []
@@ -301,7 +302,7 @@ class Client(object):
                         files.append(path)
                         break
             if files:
-                print '\nCould upload %s subtitles:\n' % len(files)
+                print '\ncould upload %s subtitles:\n' % len(files)
                 print '\n'.join(files)
 
     def upload(self):
@@ -335,14 +336,14 @@ class Client(object):
         r = self.api.update(post)
         
         if r['data']['file']:
-            print 'Uploading %s files' % len(r['data']['file'])
+            print 'uploading %s files' % len(r['data']['file'])
             for oshash in r['data']['file']:
                 if oshash in filenames:
                     filename = filenames[oshash]
                     self.api.uploadData(os.path.join(prefix, filename), oshash)
 
         if r['data']['data']:
-            print 'Encoding and uploading %s videos' % len(r['data']['data'])
+            print 'encoding and uploading %s videos' % len(r['data']['data'])
             for oshash in r['data']['data']:
                 data = {}
                 if oshash in filenames:
@@ -396,8 +397,6 @@ class API(ox.API):
             self.media_cache = default_media_cache 
 
     def uploadVideo(self, filename, data, profile, info=None):
-        if DEBUG:
-            print filename.encode('utf-8')
         i = encode(filename, self.media_cache, profile, info)
         if not i:
             print "failed"
@@ -419,10 +418,9 @@ class API(ox.API):
         #upload video
         if os.path.exists(i['video']):
             size = ox.formatBytes(os.path.getsize(i['video']))
-            print "Uploading %s (%s) of %s" % (profile, size, filename)
+            print "uploading %s of %s (%s)" % (profile, os.path.basename(filename), size)
             url = self.url + 'upload/' + '?profile=' + str(profile) + '&id=' + i['oshash']
-            ogg = Firefogg(cj=self._cj, debug=DEBUG)
-            if not ogg.upload(url, i['video'], data):
+            if not self.upload_chunks(url, i['video'], data):
                 if DEBUG:
                     print "failed"
                 return False
@@ -442,4 +440,63 @@ class API(ox.API):
         form.add_file('file', fname, open(filename, 'rb'))
         r = self._json_request(self.url, form)
         return r
+
+    def upload_chunks(self, url, filename, data=None):
+        form = ox.MultiPartForm()
+        if not data:
+            for key in data:
+                form.add_field(key, data[key])
+        data = self._json_request(url, form)
+        if 'uploadUrl' in data:
+            uploadUrl = data['uploadUrl']
+            f = open(filename)
+            fsize = os.stat(filename).st_size
+            done = 0
+            chunk = f.read(CHUNK_SIZE)
+            fname = os.path.basename(filename)
+            if isinstance(fname, unicode):
+                fname = fname.encode('utf-8')
+            while chunk:
+                print '%0.2f%% %s of %s uploaded                    \r' % (
+                    100 * done/fsize, ox.formatBytes(done), ox.formatBytes(fsize)),
+                sys.stdout.flush()
+                form = ox.MultiPartForm()
+                form.add_file('chunk', fname, chunk)
+                if len(chunk) < CHUNK_SIZE or f.tell() == fsize:
+                    form.add_field('done', '1')
+                try:
+                    data = self._json_request(uploadUrl, form)
+                except KeyboardInterrupt:
+                    print "\ninterrupted by user."
+                    sys.exit(1)
+                except:
+                    print "uploading chunk failed, will try again in 5 seconds"
+                    if DEBUG:
+                        print uploadUrl
+                        import traceback
+                        traceback.print_exc()
+                    data = {'result': -1}
+                    time.sleep(5)
+                if data and 'status' in data:
+                    if data['status']['code'] == 403:
+                        print "login required"
+                        return False
+                    if data['status']['code'] != 200:
+                        print "request returned error, will try again in 5 seconds"
+                        if DEBUG:
+                            print data
+                        time.sleep(5)
+                if data and data['result'] == 1:
+                    done += len(chunk)
+                    chunk = f.read(CHUNK_SIZE)
+            print '                                                '
+            return data and 'result' in data and data['result'] == 1
+        else:
+            if DEBUG:
+                if 'status' in data and data['status']['code'] == 401:
+                    print "login required"
+                else:
+                    print "failed to upload file to", url
+                    print data
+        return False
 

@@ -36,7 +36,7 @@ or instead of OxFF to keep archive and pan.do/ra instance in sync.
     packages=[
         'pandora_client'
     ],
-    install_requires=['python-firefogg', 'ox'],
+    install_requires=['ox'],
     keywords = [
 ],
     classifiers = [

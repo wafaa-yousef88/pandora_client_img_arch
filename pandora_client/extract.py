@@ -164,8 +164,9 @@ def video(video, target, profile, info):
         print 'Output:\t', target
     except KeyboardInterrupt:
         r = 1
-        print "\n\ncleanup unfinished encoding:\nremoving", target
-        print "\n"
-        os.unlink(target)
+        if os.path.exists(target):
+            print "\n\ncleanup unfinished encoding:\nremoving", target
+            print "\n"
+            os.unlink(target)
         sys.exit(1)
     return r == 0
