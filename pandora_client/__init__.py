@@ -446,6 +446,8 @@ class API(ox.API):
             for key in data:
                 form.add_field(key, data[key])
         data = self._json_request(url, form)
+        if 'url' in data:
+            print data['url']
         if 'uploadUrl' in data:
             uploadUrl = data['uploadUrl']
             f = open(filename)
