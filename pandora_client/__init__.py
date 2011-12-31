@@ -41,7 +41,6 @@ def encode(filename, prefix, profile, info=None):
             frames.append(frame_f)
     video_f = os.path.join(cache, profile)
     if not os.path.exists(video_f):
-        return False
         extract.video(filename, video_f, profile, info)
     return {
         'info': info,
