@@ -310,26 +310,6 @@ class Client(object):
             return
         conn, c = self._conn()
 
-        volumes = {}
-        for name in self._config['volumes']:
-            path = self._config['volumes'][name]
-            path = os.path.normpath(path)
-
-            volumes[name] = {}
-            volumes[name]['path'] = path
-            if os.path.exists(path):
-                volumes[name]['available'] = True
-            else:
-                volumes[name]['available'] = False
-
-        for name in volumes:
-            if volumes[name]['available']:
-                prefix = volumes[name]['path']
-                files = self.files(prefix)
-
-        filenames = {}
-        for f in files['files']:
-            filenames[f['oshash']] = f['path']
         #send empty list to get updated list of requested info/files/data
         post = {'info': {}}
         r = self.api.update(post)
@@ -337,22 +317,21 @@ class Client(object):
         if r['data']['file']:
             print 'uploading %s files' % len(r['data']['file'])
             for oshash in r['data']['file']:
-                if oshash in filenames:
-                    filename = filenames[oshash]
-                    self.api.uploadData(os.path.join(prefix, filename), oshash)
+                for path in self.path(oshash):
+                    if os.path.exists(path):
+                        self.api.uploadData(path, oshash)
 
         if r['data']['data']:
             print 'encoding and uploading %s videos' % len(r['data']['data'])
             for oshash in r['data']['data']:
                 data = {}
-                if oshash in filenames:
-                    filename = filenames[oshash]
-                    info = files['info'][oshash]
-                    if not self.api.uploadVideo(os.path.join(prefix, filename),
-                                                data, self.profile, info):
-                        if not self.signin():
-                            print "failed to login again"
-                            return
+                for path in self.path(oshash):
+                    if os.path.exists(path):
+                        info = self.info(oshash)
+                        if not self.api.uploadVideo(path, data, self.profile, info):
+                            if not self.signin():
+                                print "failed to login again"
+                                return
 
     def files(self, prefix):
         conn, c = self._conn()
