@@ -432,13 +432,17 @@ class API(ox.API):
             f = open(filename)
             fsize = os.stat(filename).st_size
             done = 0
+            start = time.mktime(time.localtime())
             chunk = f.read(CHUNK_SIZE)
             fname = os.path.basename(filename)
             if isinstance(fname, unicode):
                 fname = fname.encode('utf-8')
             while chunk:
-                print '%0.2f%% %s of %s uploaded                    \r' % (
-                    100 * done/fsize, ox.formatBytes(done), ox.formatBytes(fsize)),
+                elapsed = time.mktime(time.localtime()) - start
+                remaining = elapsed / (done/fsize) - elapsed 
+                print '%0.2f%% %s of %s done, %s remaining\r' % (
+                    100 * done/fsize, ox.formatBytes(done), ox.formatBytes(fsize),
+                    ox.formatDuration(remaining, verbosity=2)),
                 sys.stdout.flush()
                 form = ox.MultiPartForm()
                 form.add_file('chunk', fname, chunk)
@@ -466,11 +470,11 @@ class API(ox.API):
                         if DEBUG:
                             print data
                         time.sleep(5)
-                if data and data['result'] == 1:
+                if data and data.get('result') == 1:
                     done += len(chunk)
                     chunk = f.read(CHUNK_SIZE)
             print '                                                '
-            return data and 'result' in data and data['result'] == 1
+            return data and 'result' in data and data.get('result') == 1
         else:
             if DEBUG:
                 if 'status' in data and data['status']['code'] == 401:
