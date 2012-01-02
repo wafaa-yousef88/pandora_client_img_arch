@@ -49,6 +49,16 @@ def encode(filename, prefix, profile, info=None):
         'video': video_f
     }
 
+def encode_cmd(filename, prefix, profile, info):
+    if not info:
+        info = utils.avinfo(filename)
+    if not 'oshash' in info:
+        return None
+    oshash = info['oshash']
+    cache = os.path.join(prefix, os.path.join(*utils.hash_prefix(oshash)))
+    video_f = os.path.join(cache, profile)
+    return extract.video_cmd(filename, video_f, profile, info)
+
 class Client(object):
     def __init__(self, config, offline=False):
         if isinstance(config, basestring):
@@ -170,7 +180,19 @@ class Client(object):
                 c.execute(u'INSERT OR REPLACE INTO file values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', t)
                 conn.commit()
 
-    def scan(self):
+    def cmd(self, args):
+        filename = args[0]
+        if len(filename) == 16:
+            path = self.paths(filename)
+        else:
+            path = [filename]
+        for p in path:
+            if os.path.exists(p):
+                cmd = encode_cmd(p, self.media_cache(), self.profile, None)
+                cmd = [' ' in c and '"%s"' % c or c for c in cmd]
+                print ' '.join(cmd)
+
+    def scan(self, args):
         print "checking for new files ..."
         for name in self._config['volumes']:
             path = self._config['volumes'][name]
@@ -203,7 +225,7 @@ class Client(object):
             print "scanned volume %s: %s files, %s new, %s deleted" % (
                     name, len(files), len(files) - len(known_files), len(deleted_files))
 
-    def extract(self):
+    def extract(self, args):
         conn, c = self._conn()
 
         volumes = {}
@@ -232,7 +254,7 @@ class Client(object):
                          print filename.encode('utf-8')
                          i = encode(filename, self.media_cache(), self.profile, info)
 
-    def sync(self):
+    def sync(self, args):
         if not self.user:
             print "you need to login"
             return
@@ -304,7 +326,7 @@ class Client(object):
                 print '\ncould upload %s subtitles:\n' % len(files)
                 print '\n'.join(files)
 
-    def upload(self):
+    def upload(self, args):
         if not self.user:
             print "you need to login"
             return
@@ -454,9 +476,10 @@ class API(ox.API):
                     print "\ninterrupted by user."
                     sys.exit(1)
                 except:
-                    print "uploading chunk failed, will try again in 5 seconds"
+                    print "uploading chunk failed, will try again in 5 seconds\r",
+                    sys.stdout.flush()
                     if DEBUG:
-                        print uploadUrl
+                        print '\n', uploadUrl
                         import traceback
                         traceback.print_exc()
                     data = {'result': -1}

@@ -58,7 +58,8 @@ def frame(video, target, position):
     r = run_command(cmd)
     return r == 0
 
-def video(video, target, profile, info):
+def video_cmd(video, target, profile, info):
+
     if not os.path.exists(target):
         ox.makedirs(os.path.dirname(target))
 
@@ -147,6 +148,10 @@ def video(video, target, profile, info):
           + video_settings \
           + ['-f','webm', target]
 
+    return cmd
+
+def video(video, target, profile, info):
+    cmd = video_cmd(video, target, profile, info)
     #r = run_command(cmd, -1)
     p = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE)
     '''
