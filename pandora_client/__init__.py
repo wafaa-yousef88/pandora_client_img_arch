@@ -96,6 +96,17 @@ class Client(object):
             for i in db:
                 c.execute(i)
             conn.commit()
+        if int(self.get('version', 0)) < 2:
+            self.set('version', 1)
+            db = [
+                '''CREATE TABLE IF NOT EXISTS encode (
+                                oshash varchar(16),
+                                site varchar(255))''',
+                '''CREATE INDEX IF NOT EXISTS upload_site_idx ON encode (site)''',
+            ]
+            for i in db:
+                c.execute(i)
+            conn.commit()
 
     def _conn(self):
         db_conn = os.path.expanduser(self._config['cache'])
@@ -154,6 +165,21 @@ class Client(object):
             if r['status']['code'] == 200:
                 self.api._config = r['data']['site']
             return True
+
+    def set_encodes(self, site, files):
+        conn, c = self._conn()
+        c.execute('DELETE FROM encode WHERE site = ?' , (site, ))
+        for oshash in files:
+            c.execute(u'INSERT INTO encode VALUES (?, ?)', (oshash, site))
+        conn.commit()
+
+    def get_encodes(self, site):
+        conn, c = self._conn()
+        c.execute('SELECT oshash FROM encodes WHERE site = ?', (site, ))
+        files = []
+        for row in c:
+            files.append(row[0])
+        return files
 
     def scan_file(self, path):
         conn, c = self._conn()
@@ -225,55 +251,43 @@ class Client(object):
             print "scanned volume %s: %s files, %s new, %s deleted" % (
                     name, len(files), len(files) - len(known_files), len(deleted_files))
 
-    def extract(self):
-        if not self.user:
-            print "you need to login"
-            return
+    def extract(self, args):
         conn, c = self._conn()
+        if args:
+            if args[0] == 'offline':
+                files = self.get_encodes(self._config['url'])
+            elif args[0] == 'all':
+                files = []
+                for name in self._config['volumes']:
+                    path = self._config['volumes'][name]
+                    path = os.path.normpath(path)
 
-        #send empty list to get updated list of requested info/files/data
-        post = {'info': {}}
-        r = self.api.update(post)
-        
-        if r['data']['data']:
-            print 'encoding %s videos' % len(r['data']['data'])
-            for oshash in r['data']['data']:
-                data = {}
-                for path in self.path(oshash):
                     if os.path.exists(path):
-                        info = self.info(oshash)
-                        print path.encode('utf-8')
-                        i = encode(path, self.media_cache(), self.profile, info)
-                        break
+                        files += self.files(path).keys['info']
+                def no_extras(oshash):
+                    for path in self.path(oshash):
+                        if '/extras' in path.lower() or \
+                            '/versions' in path.lower():
+                            return False
+                    return True
+                files = filter(no_extras, files)    
+        else:
+            if not self.user:
+                print "you need to login or run pandora_client extract offline"
+                return
+            #send empty list to get updated list of requested info/files/data
+            post = {'info': {}}
+            r = self.api.update(post)
+            files = r['data']['data']
+            self.set_encodes(self._config['url'], files)
 
-    def extract_offline(self):
-        conn, c = self._conn()
-
-        volumes = {}
-        for name in self._config['volumes']:
-            path = self._config['volumes'][name]
-            path = os.path.normpath(path)
-
-            volumes[name] = {}
-            volumes[name]['path'] = path
-            if os.path.exists(path):
-                volumes[name]['available'] = True
-            else:
-                volumes[name]['available'] = False
-
-        for name in volumes:
-            if volumes[name]['available']:
-                prefix = volumes[name]['path']
-                files = self.files(prefix)
-                for f in files['files']:
-                     filename = os.path.join(prefix, f['path'])
-                     info = files['info'][f['oshash']]
-                     if 'video' in info and \
-                        info['video'] and \
-                        '/extras' not in filename.lower() and \
-                        '/versions' not in filename.lower():
-                         print filename.encode('utf-8')
-                         i = encode(filename, self.media_cache(), self.profile, info)
+        for oshash in files:
+            for path in self.path(oshash):
+                if os.path.exists(path):
+                    info = self.info(oshash)
+                    print path.encode('utf-8')
+                    i = encode(path, self.media_cache(), self.profile, info)
+                    break
 
     def sync(self, args):
         if not self.user:
