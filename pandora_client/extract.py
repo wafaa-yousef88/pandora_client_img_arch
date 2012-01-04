@@ -117,7 +117,13 @@ def video_cmd(video, target, profile, info):
         fps = AspectRatio(info['video'][0]['framerate'])
         width = int(dar * height)
         width += width % 2 
-
+        extra = []
+        if fps == 50:
+            fps = 25
+            extra += ['-r', '25']
+        if fps == 60:
+            fps = 30
+            extra += ['-r', '30']
         bitrate = height*width*fps*bpp/1000
         aspect = dar.ratio
         #use 1:1 pixel aspect ratio if dar is close to that
@@ -129,7 +135,7 @@ def video_cmd(video, target, profile, info):
             '-s', '%dx%d'%(width, height),
             '-aspect', aspect,
             '-vf', 'yadif',
-        ]
+        ] + extra
     else:
         video_settings = ['-vn']
 
@@ -143,7 +149,7 @@ def video_cmd(video, target, profile, info):
     else:
         audio_settings = ['-an']
 
-    cmd = ['ffmpeg', '-y', '-i', video] \
+    cmd = ['ffmpeg', '-y', '-i', video, '-threads', '4'] \
           + audio_settings \
           + video_settings \
           + ['-f','webm', target]
