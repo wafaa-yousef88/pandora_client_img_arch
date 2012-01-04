@@ -223,6 +223,10 @@ class Client(object):
         for name in self._config['volumes']:
             path = self._config['volumes'][name]
             path = os.path.normpath(path)
+            conn, c = self._conn()
+            c.execute('SELECT path FROM file WHERE path LIKE ? AND deleted < 0', ["%s%%"%path])
+            known_files = [r[0] for r in c.fetchall()]
+
             files = []
             for dirpath, dirnames, filenames in os.walk(path, followlinks=True):
                 if isinstance(dirpath, str):
@@ -237,11 +241,8 @@ class Client(object):
                                 files.append(file_path)
                                 self.scan_file(file_path)
             
-            conn, c = self._conn()
-            c.execute('SELECT path FROM file WHERE path LIKE ? AND deleted < 0', ["%s%%"%path])
-            known_files = [r[0] for r in c.fetchall()]
             deleted_files = filter(lambda f: f not in files, known_files)
-
+            conn, c = self._conn()
             if deleted_files:
                 deleted = time.mktime(time.localtime())
                 for f in deleted_files:

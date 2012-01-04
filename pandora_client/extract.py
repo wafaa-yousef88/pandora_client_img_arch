@@ -130,8 +130,9 @@ def video_cmd(video, target, profile, info):
         if abs(width/height - dar) < 0.02:
             aspect = '%s:%s' % (width, height)
 
+        #    '-g', '%d' % int(fps*2),
         video_settings = [
-            '-vb', '%dk'%bitrate, '-g', '%d' % int(fps*2),
+            '-vb', '%dk'%bitrate,
             '-s', '%dx%d'%(width, height),
             '-aspect', aspect,
             '-vf', 'yadif',
