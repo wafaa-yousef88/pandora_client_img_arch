@@ -25,16 +25,13 @@ if __name__ == '__main__':
         parser.print_help()
         sys.exit()
 
-    actions = ('scan', 'sync', 'upload', 'extract', 'clean', 'cmd')
+    actions = ('scan', 'sync', 'upload', 'extract', 'extract_offline', 'clean', 'cmd')
     if not args or args[0] not in actions:
         parser.error('you must specify a valid action. \n\t\tknown actions are: %s' % ', '.join(actions))
 
     action = args[0]
 
-    if action == 'extract':
-        offline = True
-    else:
-        offline = False
+    offline = False
     c = pandora_client.Client(opts.config, offline)
     getattr(c, action)(args[1:])
 

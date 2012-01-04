@@ -225,7 +225,28 @@ class Client(object):
             print "scanned volume %s: %s files, %s new, %s deleted" % (
                     name, len(files), len(files) - len(known_files), len(deleted_files))
 
-    def extract(self, args):
+    def extract(self):
+        if not self.user:
+            print "you need to login"
+            return
+        conn, c = self._conn()
+
+        #send empty list to get updated list of requested info/files/data
+        post = {'info': {}}
+        r = self.api.update(post)
+        
+        if r['data']['data']:
+            print 'encoding %s videos' % len(r['data']['data'])
+            for oshash in r['data']['data']:
+                data = {}
+                for path in self.path(oshash):
+                    if os.path.exists(path):
+                        info = self.info(oshash)
+                        print path.encode('utf-8')
+                        i = encode(path, self.media_cache(), self.profile, info)
+                        break
+
+    def extract_offline(self):
         conn, c = self._conn()
 
         volumes = {}
@@ -342,6 +363,7 @@ class Client(object):
                 for path in self.path(oshash):
                     if os.path.exists(path):
                         self.api.uploadData(path, oshash)
+                        break
 
         if r['data']['data']:
             print 'encoding and uploading %s videos' % len(r['data']['data'])
@@ -350,10 +372,12 @@ class Client(object):
                 for path in self.path(oshash):
                     if os.path.exists(path):
                         info = self.info(oshash)
-                        if not self.api.uploadVideo(path, data, self.profile, info):
+                        if not self.api.uploadVideo(path,
+                                                data, self.profile, info):
                             if not self.signin():
                                 print "failed to login again"
                                 return
+                        break
 
     def files(self, prefix):
         conn, c = self._conn()

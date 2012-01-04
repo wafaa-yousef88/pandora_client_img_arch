@@ -3,6 +3,7 @@
     "profile": "480p.webm",
     "username": "username", "password": "password",
     "cache": "~/.ox/client.sqlite",
+    "media-cache": "~/.ox/media",
     "volumes": {
         "my videos": "/home/example/Movies"
     }
