@@ -133,9 +133,8 @@ def video_cmd(video, target, profile, info):
         #    '-g', '%d' % int(fps*2),
         video_settings = [
             '-vb', '%dk'%bitrate,
-            '-s', '%dx%d'%(width, height),
             '-aspect', aspect,
-            '-vf', 'yadif',
+            '-vf', 'yadif,hqdn3d,scale=%s:%s'%(width, height),
         ] + extra
     else:
         video_settings = ['-vn']
