@@ -500,10 +500,15 @@ class API(ox.API):
                 fname = fname.encode('utf-8')
             while chunk:
                 elapsed = time.mktime(time.localtime()) - start
-                remaining = elapsed / (done/fsize) - elapsed 
-                print '%0.2f%% %s of %s done, %s remaining\r' % (
-                    100 * done/fsize, ox.formatBytes(done), ox.formatBytes(fsize),
-                    ox.formatDuration(remaining, verbosity=2)),
+                if done:
+                    remaining = int((elapsed / (done/fsize) - elapsed)/60) * 60 * 1000 
+                    remaining = ", %s remaining" % ox.formatDuration(remaining,
+                            milliseconds=False, verbosity=2)
+                else:
+                    remaining = ""
+                msg = '%0.2f%% %s of %s done%s' % (
+                    100 * done/fsize, ox.formatBytes(done), ox.formatBytes(fsize), remaining)
+                print ''.join([msg, ' ' * (80-len(msg)), '\r']),
                 sys.stdout.flush()
                 form = ox.MultiPartForm()
                 form.add_file('chunk', fname, chunk)
@@ -535,7 +540,7 @@ class API(ox.API):
                 if data and data.get('result') == 1:
                     done += len(chunk)
                     chunk = f.read(CHUNK_SIZE)
-            print '                                                '
+            print ' ' * 80
             return data and 'result' in data and data.get('result') == 1
         else:
             if DEBUG:
