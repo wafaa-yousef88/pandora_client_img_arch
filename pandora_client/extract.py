@@ -134,7 +134,7 @@ def video_cmd(video, target, profile, info):
             '-vb', '%dk'%bitrate,
             '-aspect', aspect,
             '-g', '%d' % int(fps*5),
-            '-keyin_min', '%d' % int(fps*2),
+            '-deadline', 'good', '-cpu-used', '0',
             '-vf', 'yadif,hqdn3d,scale=%s:%s'%(width, height),
         ] + extra
     else:
