@@ -97,7 +97,7 @@ class Client(object):
                 c.execute(i)
             conn.commit()
         if int(self.get('version', 0)) < 2:
-            self.set('version', 1)
+            self.set('version', 2)
             db = [
                 '''CREATE TABLE IF NOT EXISTS encode (
                                 oshash varchar(16),
@@ -159,8 +159,8 @@ class Client(object):
                 self.user = r['data']['user']
             else:
                 self.user = False
-                print 'login failed'
-                return False
+                print '\nlogin failed! check config\n\n'
+                sys.exit()
             r = self.api.init()
             if r['status']['code'] == 200:
                 self.api._config = r['data']['site']
