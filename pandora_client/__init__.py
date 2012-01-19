@@ -375,8 +375,8 @@ class Client(object):
             #send empty list to get updated list of requested info/files/data
             post = {'info': {}}
             r = self.api.update(post)
+            data = r['data']['data']
             files = r['data']['file']
-            datas = r['data']['data']
         
         if files:
             print 'uploading %s files' % len(files)
