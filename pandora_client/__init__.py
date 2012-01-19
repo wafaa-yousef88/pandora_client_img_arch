@@ -368,21 +368,27 @@ class Client(object):
             return
         conn, c = self._conn()
 
-        #send empty list to get updated list of requested info/files/data
-        post = {'info': {}}
-        r = self.api.update(post)
+        if args:
+            data = args
+            files = []
+        else:
+            #send empty list to get updated list of requested info/files/data
+            post = {'info': {}}
+            r = self.api.update(post)
+            files = r['data']['file']
+            datas = r['data']['data']
         
-        if r['data']['file']:
-            print 'uploading %s files' % len(r['data']['file'])
-            for oshash in r['data']['file']:
+        if files:
+            print 'uploading %s files' % len(files)
+            for oshash in files:
                 for path in self.path(oshash):
                     if os.path.exists(path):
                         self.api.uploadData(path, oshash)
                         break
 
-        if r['data']['data']:
-            print 'encoding and uploading %s videos' % len(r['data']['data'])
-            for oshash in r['data']['data']:
+        if data:
+            print 'encoding and uploading %s videos' % len(data)
+            for oshash in data:
                 data = {}
                 for path in self.path(oshash):
                     if os.path.exists(path):
@@ -500,12 +506,12 @@ class API(ox.API):
                 fname = fname.encode('utf-8')
             while chunk:
                 elapsed = time.mktime(time.localtime()) - start
+                remaining = ""
                 if done:
-                    remaining = int((elapsed / (done/fsize) - elapsed)/60) * 60 * 1000 
-                    remaining = ", %s remaining" % ox.formatDuration(remaining,
-                            milliseconds=False, verbosity=2)
-                else:
-                    remaining = ""
+                    r = int((elapsed / (done/fsize) - elapsed)/60) * 60 * 1000 
+                    r = ox.formatDuration(r, milliseconds=False, verbosity=2)
+                    if r:
+                        remaining = ", %s remaining" % r
                 msg = '%0.2f%% %s of %s done%s' % (
                     100 * done/fsize, ox.formatBytes(done), ox.formatBytes(fsize), remaining)
                 print ''.join([msg, ' ' * (80-len(msg)), '\r']),
