@@ -297,7 +297,7 @@ class Client(object):
         conn, c = self._conn()
 
         volumes = {}
-        for name in self._config['volumes']:
+        for name in sorted(self._config['volumes']):
             path = self._config['volumes'][name]
             path = os.path.normpath(path)
 
