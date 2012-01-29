@@ -205,6 +205,8 @@ class Client(object):
                      stat.st_size, json.dumps(info), created, modified, deleted)
                 c.execute(u'INSERT OR REPLACE INTO file values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', t)
                 conn.commit()
+            else:
+                print info
 
     def cmd(self, args):
         filename = args[0]
@@ -220,7 +222,7 @@ class Client(object):
 
     def scan(self, args):
         print "checking for new files ..."
-        for name in self._config['volumes']:
+        for name in sorted(self._config['volumes']):
             path = self._config['volumes'][name]
             path = os.path.normpath(path)
             conn, c = self._conn()
@@ -237,11 +239,12 @@ class Client(object):
                             filename = filename.decode('utf-8')
                         if not filename.startswith('._') and not filename in ('.DS_Store', ):
                             file_path = os.path.join(dirpath, filename)
-                            if os.path.exists(file_path):
+                            if os.path.exists(file_path) and os.stat(file_path).st_size>0:
                                 files.append(file_path)
                                 self.scan_file(file_path)
             
             deleted_files = filter(lambda f: f not in files, known_files)
+            new_files = filter(lambda f: f not in known_files, files)
             conn, c = self._conn()
             if deleted_files:
                 deleted = time.mktime(time.localtime())
@@ -250,7 +253,7 @@ class Client(object):
                 conn.commit()
 
             print "scanned volume %s: %s files, %s new, %s deleted" % (
-                    name, len(files), len(files) - len(known_files), len(deleted_files))
+                    name, len(files), len(new_files), len(deleted_files))
 
     def extract(self, args):
         conn, c = self._conn()
@@ -286,7 +289,7 @@ class Client(object):
             for path in self.path(oshash):
                 if os.path.exists(path):
                     info = self.info(oshash)
-                    print path.encode('utf-8')
+                    #print path.encode('utf-8')
                     i = encode(path, self.media_cache(), self.profile, info)
                     break
 
@@ -308,7 +311,7 @@ class Client(object):
             else:
                 volumes[name]['available'] = False
 
-        for name in volumes:
+        for name in sorted(volumes):
             if volumes[name]['available']:
                 prefix = volumes[name]['path']
                 files = self.files(prefix)
