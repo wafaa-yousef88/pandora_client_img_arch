@@ -21,6 +21,12 @@ import ox
 from utils import avinfo, AspectRatio, run_command
 
 
+def command(program):
+    local = os.path.expanduser('~/.ox/bin/%s' % program)
+    if os.path.exists(local):
+        program = local
+    return program
+
 def frame(video, target, position):
     fdir = os.path.dirname(target)
     if fdir and not os.path.exists(fdir):
@@ -54,7 +60,7 @@ def frame(video, target, position):
     return r == 0
     '''
     #ffmpeg
-    cmd = ['ffmpeg', '-y', '-ss', str(position), '-i', video, '-an', '-vframes', '1', target]
+    cmd = [command('ffmpeg'), '-y', '-ss', str(position), '-i', video, '-an', '-vframes', '1', target]
     r = run_command(cmd)
     return r == 0
 
@@ -150,7 +156,7 @@ def video_cmd(video, target, profile, info):
     else:
         audio_settings = ['-an']
 
-    cmd = ['ffmpeg', '-y', '-i', video, '-threads', '4'] \
+    cmd = [command('ffmpeg'), '-y', '-i', video, '-threads', '4'] \
           + audio_settings \
           + video_settings \
           + ['-f','webm', target]

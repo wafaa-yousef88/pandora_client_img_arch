@@ -9,6 +9,7 @@ import sqlite3
 import time
 import shutil
 import sys
+import socket
 
 import ox
 
@@ -19,9 +20,10 @@ import utils
 DEBUG = False
 
 __version__ = '0.2'
+
+socket.setdefaulttimeout(300)
 CHUNK_SIZE = 1024*1024
 default_media_cache = os.environ.get('oxMEDIA', os.path.expanduser('~/.ox/media'))
-
 
 def encode(filename, prefix, profile, info=None):
     if not info:
@@ -344,6 +346,11 @@ class Client(object):
                                     post['info'][oshash] = files['info'][oshash]
                             if len(post['info']):
                                 r = self.api.update(post)
+
+        if not 'data' in r:
+            print r
+            return
+
         if r['data']['data']:
             files = []
             for f in r['data']['data']:
@@ -433,6 +440,25 @@ class Client(object):
         if os.path.exists(self.prefix()):
             shutil.rmtree(self.prefix())
 
+    def import_srt(self, args):
+        '''
+            import srt as annotations, usage:
+                pandora_local ITEMID layername /path/to/transcript.srt
+            i.e. 
+                pandora_local ABC transcripts /path/to/transcript.srt
+        '''
+        item = args[0]
+        layer = args[1]
+        filename = args[2]
+        for s in ox.srt.load(filename):
+            self.api.addAnnotation({
+                'item;': item,
+                'layer;': layer,
+                'in': s['in'],
+                'out': s['out'],
+                'value': s['value'],
+            })
+
 class API(ox.API):
     __name__ = 'pandora_client'
     __version__ = __version__
@@ -443,6 +469,7 @@ class API(ox.API):
         self.media_cache = media_cache
         if not self.media_cache:
             self.media_cache = default_media_cache 
+        self._resume_file = '/tmp/pandora_client.%s.json' % os.environ.get('USER')
 
     def uploadVideo(self, filename, data, profile, info=None):
         i = encode(filename, self.media_cache, profile, info)
@@ -491,10 +518,18 @@ class API(ox.API):
 
     def upload_chunks(self, url, filename, data=None):
         form = ox.MultiPartForm()
-        if not data:
+        if os.path.exists(self._resume_file):
+            with open(self._resume_file) as f:
+                resume = json.load(f)
+            if resume.get('url') != url:
+                resume = None
+        if resume:
+            data = resume
+        else:
             for key in data:
                 form.add_field(key, data[key])
-        data = self._json_request(url, form)
+            data = self._json_request(url, form)
+
         print filename
         if 'url' in data:
             print data['url']
@@ -504,7 +539,12 @@ class API(ox.API):
             fsize = os.stat(filename).st_size
             done = 0
             start = time.mktime(time.localtime())
-            chunk = f.read(CHUNK_SIZE)
+            if 'offset' in data and data['offset'] < fsize:
+                while done < data['offset']:
+                    chunk = f.read(CHUNK_SIZE)
+                    done += len(chunk)
+            else:
+                chunk = f.read(CHUNK_SIZE)
             fname = os.path.basename(filename)
             if isinstance(fname, unicode):
                 fname = fname.encode('utf-8')
@@ -548,6 +588,12 @@ class API(ox.API):
                             print data
                         time.sleep(5)
                 if data and data.get('result') == 1:
+                    with open(self._resume_file, 'w') as r:
+                        json.dump({
+                            'uploadUrl': uploadUrl,
+                            'url': url,
+                            'offset': done
+                        }, r, indent=2)
                     done += len(chunk)
                     chunk = f.read(CHUNK_SIZE)
             print ' ' * 80
