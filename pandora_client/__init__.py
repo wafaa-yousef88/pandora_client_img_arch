@@ -25,7 +25,7 @@ socket.setdefaulttimeout(300)
 CHUNK_SIZE = 1024*1024
 default_media_cache = os.environ.get('oxMEDIA', os.path.expanduser('~/.ox/media'))
 
-def encode(filename, prefix, profile, info=None):
+def encode(filename, prefix, profile, info=None, extract_frames=True):
     if not info:
         info = utils.avinfo(filename)
     if not 'oshash' in info:
@@ -33,7 +33,7 @@ def encode(filename, prefix, profile, info=None):
     oshash = info['oshash']
     frames = []
     cache = os.path.join(prefix, os.path.join(*utils.hash_prefix(oshash)))
-    if info['video']:
+    if info['video'] and extract_frames:
         for pos in utils.video_frame_positions(info['duration']):
             frame_name = '%s.png' % pos
             frame_f = os.path.join(cache, frame_name)
@@ -292,7 +292,8 @@ class Client(object):
                 if os.path.exists(path):
                     info = self.info(oshash)
                     #print path.encode('utf-8')
-                    i = encode(path, self.media_cache(), self.profile, info)
+                    i = encode(path, self.media_cache(), self.profile, info,
+                               self._config['media'].get('importFrames'))
                     break
 
     def sync(self, args):
@@ -472,13 +473,14 @@ class API(ox.API):
         self._resume_file = '/tmp/pandora_client.%s.json' % os.environ.get('USER')
 
     def uploadVideo(self, filename, data, profile, info=None):
-        i = encode(filename, self.media_cache, profile, info)
+        i = encode(filename, self.media_cache, profile, info
+                   self._config['media'].get('importFrames'))
         if not i:
             print "failed"
             return
 
         #upload frames
-        if self._config['media']['importPosterFrames']:
+        if self._config['media'].get('importFrames'):
             form = ox.MultiPartForm()
             form.add_field('action', 'upload')
             form.add_field('id', i['oshash'])
