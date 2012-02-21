@@ -10,6 +10,7 @@ import time
 import shutil
 import sys
 import socket
+import getpass
 
 import ox
 
@@ -23,7 +24,7 @@ __version__ = '0.2'
 
 socket.setdefaulttimeout(300)
 CHUNK_SIZE = 1024*1024
-default_media_cache = os.environ.get('oxMEDIA', os.path.expanduser('~/.ox/media'))
+default_media_cache = os.environ.get('oxMEDIA', '~/.ox/media')
 
 def encode(filename, prefix, profile, info=None, extract_frames=True):
     if not info:
@@ -62,8 +63,11 @@ def encode_cmd(filename, prefix, profile, info):
     return extract.video_cmd(filename, video_f, profile, info)
 
 class Client(object):
+    _configfile = None
+
     def __init__(self, config, offline=False):
         if isinstance(config, basestring):
+            self._configfile = config
             with open(config) as f:
                 self._config = json.load(f)
         else:
@@ -221,6 +225,45 @@ class Client(object):
                 cmd = encode_cmd(p, self.media_cache(), self.profile, None)
                 cmd = [' ' in c and '"%s"' % c or c for c in cmd]
                 print ' '.join(cmd)
+
+    def save_config(self):
+        if not self._configfile:
+            raise Exception('Can not save temporary config')
+        with open(self._configfile, 'w') as f:
+            json.dump(self._config, f, indent=2)
+
+    def config(self, args):
+        print "Current Config:\n  User %s\n  URL:%s\n" %(self._config['username'], self._config['url'])
+        print "Leave empty to keep current value\n"
+        username = raw_input('Username: ')
+        if username:
+            self._config['username'] = username
+        password = getpass.getpass('Password: ')
+        if password:
+            self._config['password'] = password
+        url = raw_input('Pan.do/ra URL(i.e. http://pad.ma/api/): ')
+        if url:
+            self._config['url'] = url
+        self.save_config()
+        print "\nconfiguration updated."
+
+    def add_volume(self, args):
+        if len(args) != 2:
+            print "Usage: %s add_volume name path" % sys.argv[0]
+            sys.exit(1)
+        name = args[0]
+        path = args[1]
+        if not path.endswith('/'):
+            path = path+'/'
+        if os.path.isdir(path):
+            if name in self._config['volumes']:
+                print "updated %s to %s" % (name, path)
+            else:
+                print "added %s %s" % (name, path)
+            self._config['volumes'][name] = path
+            self.save_config()
+
+        self._config['volumes'][name] = path
 
     def scan(self, args):
         print "checking for new files ..."
@@ -469,11 +512,11 @@ class API(ox.API):
 
         self.media_cache = media_cache
         if not self.media_cache:
-            self.media_cache = default_media_cache 
+            self.media_cache = os.path.exanduser(default_media_cache)
         self._resume_file = '/tmp/pandora_client.%s.json' % os.environ.get('USER')
 
     def uploadVideo(self, filename, data, profile, info=None):
-        i = encode(filename, self.media_cache, profile, info
+        i = encode(filename, self.media_cache, profile, info,
                    self._config['media'].get('importFrames'))
         if not i:
             print "failed"

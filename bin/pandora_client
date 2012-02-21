@@ -1,11 +1,12 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 # vi:si:et:sw=4:sts=4:ts=4
-# GPL 2008
+# GPL 2012
 
 import os
 import sys
 from optparse import OptionParser
+import json
 
 root = os.path.join(os.path.abspath(os.path.dirname(__file__)), '..')
 if os.path.exists(os.path.join(root, 'pandora_client')):
@@ -21,17 +22,30 @@ if __name__ == '__main__':
     (opts, args) = parser.parse_args()
 
     opts.config = os.path.expanduser(opts.config)
-    if None in (opts.config, ) or not os.path.exists(opts.config):
+    if None in (opts.config, ) or (args[0] != 'config' and not os.path.exists(opts.config)):
         parser.print_help()
         sys.exit()
 
     actions = ('scan', 'sync', 'upload', 'extract', 'clean', 'cmd', 'import_srt')
-    if not args or args[0] not in actions:
-        parser.error('you must specify a valid action. \n\t\tknown actions are: %s' % ', '.join(actions))
+    config = ('config', 'add_volume')
+    if not args or args[0] not in actions + config:
+        parser.error('you must specify a valid action. \n\t\tknown actions are: %s\n\t\tconfiguration:     config, add_volume' % ', '.join(actions))
 
     action = args[0]
 
     offline = False
+    offline = action in config
+    if action == 'config':
+        if not os.path.exists(opts.config):
+            with open(opts.config, 'w') as f:
+                json.dump({
+                  "url": "",
+                  "username": "", 
+                  "password": "", 
+                  "cache": "~/.ox/client.sqlite", 
+                  "media": '~/.ox/media',
+                  "volumes": {}
+                }, f, indent=2)
     c = pandora_client.Client(opts.config, offline)
     getattr(c, action)(args[1:])
 
