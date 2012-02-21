@@ -1,6 +1,7 @@
-pandora_client
+pandora_client - python client and libary to access a pan.do/ra instances
 
-python libary to access a pan.do/ra instance
+For more info on using pandora_client, check
+http://wiki.0x2620.org/wiki/pandora_client
 
 pandora client example:
   import pandora_client
@@ -33,7 +34,7 @@ just using the API:
     for i in r['data']['items']:
         ...
 
-forther api documentation is available as python docstrings.
- api.find?
-and there is a web api documentation at i.e. http://localhost:8000/api/
-
+api documentation is available as python docstrings.
+i.e. in ipython:
+  api.find?
+(alternatively you can open the api url in a browser to read further documentation)
