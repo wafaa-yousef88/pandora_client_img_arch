@@ -563,6 +563,7 @@ class API(ox.API):
 
     def upload_chunks(self, url, filename, data=None):
         form = ox.MultiPartForm()
+        resume = None
         if os.path.exists(self._resume_file):
             with open(self._resume_file) as f:
                 resume = json.load(f)
