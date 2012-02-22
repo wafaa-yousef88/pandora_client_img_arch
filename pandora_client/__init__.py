@@ -642,6 +642,9 @@ class API(ox.API):
                         }, r, indent=2)
                     done += len(chunk)
                     chunk = f.read(CHUNK_SIZE)
+            if os.path.exists(self._resume_file):
+                os.unlink(self._resume_file)
+                resume = None
             print ' ' * 80
             return data and 'result' in data and data.get('result') == 1
         else:
