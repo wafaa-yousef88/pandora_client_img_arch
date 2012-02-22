@@ -487,9 +487,9 @@ class Client(object):
     def import_srt(self, args):
         '''
             import srt as annotations, usage:
-                pandora_local ITEMID layername /path/to/transcript.srt
+                pandora_client ITEMID layername /path/to/transcript.srt
             i.e. 
-                pandora_local ABC transcripts /path/to/transcript.srt
+                pandora_client ABC transcripts /path/to/transcript.srt
         '''
         item = args[0]
         layer = args[1]
