@@ -586,11 +586,9 @@ class API(ox.API):
             done = 0
             start = time.mktime(time.localtime())
             if 'offset' in data and data['offset'] < fsize:
-                while done < data['offset']:
-                    chunk = f.read(CHUNK_SIZE)
-                    done += len(chunk)
-            else:
-                chunk = f.read(CHUNK_SIZE)
+                done = data['offset']
+                f.seek(done)
+            chunk = f.read(CHUNK_SIZE)
             fname = os.path.basename(filename)
             if isinstance(fname, unicode):
                 fname = fname.encode('utf-8')
@@ -634,13 +632,13 @@ class API(ox.API):
                             print data
                         time.sleep(5)
                 if data and data.get('result') == 1:
+                    done += len(chunk)
                     with open(self._resume_file, 'w') as r:
                         json.dump({
                             'uploadUrl': uploadUrl,
                             'url': url,
                             'offset': done
                         }, r, indent=2)
-                    done += len(chunk)
                     chunk = f.read(CHUNK_SIZE)
             if os.path.exists(self._resume_file):
                 os.unlink(self._resume_file)
