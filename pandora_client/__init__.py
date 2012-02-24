@@ -330,7 +330,7 @@ class Client(object):
                     path = os.path.normpath(path)
 
                     if os.path.exists(path):
-                        files += self.files(path).keys['info']
+                        files += self.files(path)['info']
                 def no_extras(oshash):
                     for path in self.path(oshash):
                         if '/extras' in path.lower() or \
