@@ -156,7 +156,7 @@ class Client(object):
         self.api = API(self._config['url'], media_cache=self.media_cache())
         self.api.DEBUG = DEBUG
         self.signin()
-        self.profile = "%sp.webm" % max(self.site['video']['resolutions'])
+        self.profile = "%sp.webm" % max(self.api.site['video']['resolutions'])
 
     def signin(self):
         if 'username' in self._config:
@@ -169,7 +169,7 @@ class Client(object):
                 sys.exit()
             r = self.api.init()
             if r['status']['code'] == 200:
-                self.site = r['data']['site']
+                self.api.site = r['data']['site']
             return True
 
     def set_encodes(self, site, files):
@@ -354,7 +354,7 @@ class Client(object):
                     info = self.info(oshash)
                     #print path.encode('utf-8')
                     i = encode(path, self.media_cache(), self.profile, info,
-                               self.site['media'].get('importFrames'))
+                               self.api.site['media'].get('importFrames'))
                     break
 
     def sync(self, args):
