@@ -577,8 +577,6 @@ class API(ox.API):
             data = self._json_request(url, form)
 
         print filename
-        if 'url' in data:
-            print data['url']
         if 'uploadUrl' in data:
             uploadUrl = data['uploadUrl']
             f = open(filename)
