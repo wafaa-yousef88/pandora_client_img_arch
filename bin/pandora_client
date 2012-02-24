@@ -22,7 +22,7 @@ if __name__ == '__main__':
     (opts, args) = parser.parse_args()
 
     opts.config = os.path.expanduser(opts.config)
-    if None in (opts.config, ) or (args[0] != 'config' and not os.path.exists(opts.config)):
+    if None in (opts.config, ) or (args and args[0] != 'config' and not os.path.exists(opts.config)):
         parser.print_help()
         sys.exit()
 

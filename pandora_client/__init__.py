@@ -156,7 +156,7 @@ class Client(object):
         self.api = API(self._config['url'], media_cache=self.media_cache())
         self.api.DEBUG = DEBUG
         self.signin()
-        self.profile = "%sp.webm" % max(self.api._config['video']['resolutions'])
+        self.profile = "%sp.webm" % max(self.site['video']['resolutions'])
 
     def signin(self):
         if 'username' in self._config:
@@ -169,7 +169,7 @@ class Client(object):
                 sys.exit()
             r = self.api.init()
             if r['status']['code'] == 200:
-                self.api._config = r['data']['site']
+                self.site = r['data']['site']
             return True
 
     def set_encodes(self, site, files):
@@ -336,7 +336,7 @@ class Client(object):
                     info = self.info(oshash)
                     #print path.encode('utf-8')
                     i = encode(path, self.media_cache(), self.profile, info,
-                               self._config['media'].get('importFrames'))
+                               self.site['media'].get('importFrames'))
                     break
 
     def sync(self, args):
@@ -517,13 +517,13 @@ class API(ox.API):
 
     def uploadVideo(self, filename, data, profile, info=None):
         i = encode(filename, self.media_cache, profile, info,
-                   self._config['media'].get('importFrames'))
+                   self.site['media'].get('importFrames'))
         if not i:
             print "failed"
             return
 
         #upload frames
-        if self._config['media'].get('importFrames'):
+        if self.site['media'].get('importFrames'):
             form = ox.MultiPartForm()
             form.add_field('action', 'upload')
             form.add_field('id', i['oshash'])
