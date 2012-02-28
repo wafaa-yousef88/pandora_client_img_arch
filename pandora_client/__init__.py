@@ -3,14 +3,16 @@
 # vi:si:et:sw=4:sts=4:ts=4
 # GPL 2012
 from __future__ import division, with_statement
-import os
-import json
-import sqlite3
-import time
-import shutil
-import sys
-import socket
+
 import getpass
+import json
+import math
+import os
+import shutil
+import socket
+import sqlite3
+import sys
+import time
 
 import ox
 
@@ -530,7 +532,7 @@ class API(ox.API):
 
         self.media_cache = media_cache
         if not self.media_cache:
-            self.media_cache = os.path.exanduser(default_media_cache)
+            self.media_cache = os.path.expanduser(default_media_cache)
         self._resume_file = '/tmp/pandora_client.%s.json' % os.environ.get('USER')
 
     def uploadVideo(self, filename, data, profile, info=None):
@@ -612,7 +614,7 @@ class API(ox.API):
                 elapsed = time.mktime(time.localtime()) - start
                 remaining = ""
                 if done:
-                    r = int((elapsed / (done/fsize) - elapsed)/60) * 60 * 1000 
+                    r = math.ceil((elapsed / (done/fsize) - elapsed)/60) * 60 * 1000 
                     r = ox.formatDuration(r, milliseconds=False, verbosity=2)
                     if r:
                         remaining = ", %s remaining" % r
