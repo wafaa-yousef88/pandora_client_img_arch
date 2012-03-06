@@ -18,7 +18,10 @@ import pandora_client
 if __name__ == '__main__':
     usage = "usage: %prog [options] action"
     parser = OptionParser(usage=usage)
-    parser.add_option('-c', '--config', dest='config', help='config.json containing config', default='~/.ox/client.json', type='string')
+    parser.add_option('-c', '--config', dest='config',
+        help='config.json containing config', default='~/.ox/client.json', type='string')
+    parser.add_option('-d', '--debug', dest='debug',
+        help='output debug information', action="store_true")
     (opts, args) = parser.parse_args()
 
     opts.config = os.path.expanduser(opts.config)
@@ -46,6 +49,7 @@ if __name__ == '__main__':
                   "media": '~/.ox/media',
                   "volumes": {}
                 }, f, indent=2)
+    pandora_client.DEBUG = opts.debug
     c = pandora_client.Client(opts.config, offline)
     getattr(c, action)(args[1:])
 
