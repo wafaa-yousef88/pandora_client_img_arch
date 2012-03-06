@@ -161,8 +161,8 @@ class Client(object):
     def online(self):
         self.api = API(self._config['url'], media_cache=self.media_cache())
         self.api.DEBUG = DEBUG
-        self.signin()
-        self.profile = "%sp.webm" % max(self.api.site['video']['resolutions'])
+        if self.signin():
+            self.profile = "%sp.webm" % max(self.api.site['video']['resolutions'])
 
     def signin(self):
         if 'username' in self._config:
@@ -172,10 +172,13 @@ class Client(object):
             else:
                 self.user = False
                 print '\nlogin failed! check config\n\n'
-                sys.exit()
+                sys.exit(1)
             r = self.api.init()
             if r['status']['code'] == 200:
                 self.api.site = r['data']['site']
+            else:
+                print "\n init failed.", r['status']
+                sys.exit(1)
             return True
 
     def set_encodes(self, site, files):
