@@ -71,7 +71,11 @@ class Client(object):
         if isinstance(config, basestring):
             self._configfile = config
             with open(config) as f:
-                self._config = json.load(f)
+                try:
+                    self._config = json.load(f)
+                except ValueError:
+                    print "Failed to parse config at", config
+                    sys.exit(1)
         else:
             self._config = config
 
@@ -441,10 +445,21 @@ class Client(object):
             print "you need to login"
             return
         conn, c = self._conn()
-
         if args:
-            data = args
+            info = {}
+            data = []
+            for arg in args:
+                if os.path.exists(arg):
+                    self.scan_file(arg)
+                    oshash = ox.oshash(arg)
+                    info[oshash] = self.info(oshash)
+                    args.append(oshash)
+                else:
+                    args.append(arg)
             files = []
+            if info:
+                post = {'info': info}
+                r = self.api.update(post)
         else:
             #send empty list to get updated list of requested info/files/data
             post = {'info': {}}
