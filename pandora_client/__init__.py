@@ -409,14 +409,18 @@ class Client(object):
                         info = r['data']['info']
                         max_info = 100
                         total = len(info)
-                        print 'sending info for %s files' % total
+                        sent = 0
                         for offset in range(0, total, max_info):
                             post = {'info': {}, 'upload': True}
                             for oshash in info[offset:offset+max_info]:
-                                if oshash in files['info']:
-                                    post['info'][oshash] = files['info'][oshash]
+                                _info = self.info(oshash)
+                                if _info:
+                                    post['info'][oshash] = _info
                             if len(post['info']):
                                 r = self.api.update(post)
+                                sent += len(post['info'])
+                        if sent:
+                            print 'sent info for %s files' % sent
 
         if not 'data' in r:
             print r
