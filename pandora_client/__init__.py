@@ -460,9 +460,9 @@ class Client(object):
                     self.scan_file(arg)
                     oshash = ox.oshash(arg)
                     info[oshash] = self.info(oshash)
-                    args.append(oshash)
+                    data.append(oshash)
                 else:
-                    args.append(arg)
+                    data.append(arg)
             files = []
             if info:
                 post = {'info': info}
