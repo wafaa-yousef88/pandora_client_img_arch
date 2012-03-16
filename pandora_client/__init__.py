@@ -453,20 +453,26 @@ class Client(object):
             return
         conn, c = self._conn()
         if args:
-            info = {}
             data = []
             for arg in args:
                 if os.path.exists(arg):
-                    self.scan_file(arg)
                     oshash = ox.oshash(arg)
-                    info[oshash] = self.info(oshash)
+                    r = self.api.findFiles({'query': {
+                        'conditions': [{'key': 'oshash', 'value': oshash}]
+                    }})['data']['items']
+                    if r == 0:
+                        self.scan_file(arg)
+                        info = self.info(oshash)
+                        filename = os.path.basename(arg)
+                        r = self.api.addFile({
+                            'id': oshash,
+                            'info': info,
+                            'filename': filename
+                        })
                     data.append(oshash)
                 else:
                     data.append(arg)
             files = []
-            if info:
-                post = {'info': info}
-                r = self.api.update(post)
         else:
             #send empty list to get updated list of requested info/files/data
             post = {'info': {}}
@@ -495,7 +501,7 @@ class Client(object):
                                 print "failed to login again"
                                 return
                         break
-
+    
     def files(self, prefix):
         conn, c = self._conn()
         files = {}
@@ -619,6 +625,7 @@ class API(ox.API):
             data = self._json_request(url, form)
 
         print filename
+        result_url = data.get('url')
         if 'uploadUrl' in data:
             uploadUrl = data['uploadUrl']
             f = open(filename)
@@ -684,6 +691,8 @@ class API(ox.API):
                 os.unlink(self._resume_file)
                 resume = None
             print ' ' * 80
+            if result_url:
+                print result_url
             return data and 'result' in data and data.get('result') == 1
         else:
             if DEBUG:
