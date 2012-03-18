@@ -547,13 +547,19 @@ class Client(object):
             print "invalid layer name, choices are: ", ', '.join(layers)
             sys.exit(1)
         for s in ox.srt.load(filename):
-            self.api.addAnnotation({
+            r = self.api.addAnnotation({
                 'item;': item,
                 'layer;': layer,
                 'in': s['in'],
                 'out': s['out'],
                 'value': s['value'],
             })
+            if r['status']['code'] == 403:
+                print 'permission deinied'
+                sys.exit(1)
+            elif r['status']['code'] == 404:
+                print 'item not found'
+                sys.exit(1)
 
 class API(ox.API):
     __name__ = 'pandora_client'
