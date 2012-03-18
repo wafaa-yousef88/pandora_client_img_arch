@@ -542,6 +542,10 @@ class Client(object):
         item = args[0]
         layer = args[1]
         filename = args[2]
+        layers = [l['id'] for l in self.api.site['layers']]
+        if layer not in layers:
+            print "invalid layer name, choices are: ", ', '.join(layers)
+            sys.exit(1)
         for s in ox.srt.load(filename):
             self.api.addAnnotation({
                 'item;': item,
