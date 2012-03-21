@@ -140,9 +140,15 @@ def video_cmd(video, target, profile, info):
             '-vb', '%dk'%bitrate,
             '-aspect', aspect,
             '-g', '%d' % int(fps*5),
-            '-deadline', 'good', '-cpu-used', '0',
             '-vf', 'yadif,hqdn3d,scale=%s:%s'%(width, height),
         ] + extra
+        if format == 'webm':
+            video_settings += [
+                '-deadline', 'good',
+                '-cpu-used', '0',
+                '-lag-in-frames', '16',
+                '-auto-alt-ref', '1',
+            ]
     else:
         video_settings = ['-vn']
 
