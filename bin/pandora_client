@@ -46,7 +46,7 @@ if __name__ == '__main__':
                   "username": "", 
                   "password": "", 
                   "cache": "~/.ox/client.sqlite", 
-                  "media": '~/.ox/media',
+                  "media-cache": '~/.ox/media',
                   "volumes": {}
                 }, f, indent=2)
     pandora_client.DEBUG = opts.debug

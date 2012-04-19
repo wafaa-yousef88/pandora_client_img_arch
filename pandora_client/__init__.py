@@ -69,7 +69,7 @@ class Client(object):
 
     def __init__(self, config, offline=False):
         if isinstance(config, basestring):
-            self._configfile = config
+            self._configfile = os.path.expanduser(config)
             with open(config) as f:
                 try:
                     self._config = json.load(f)
@@ -78,7 +78,8 @@ class Client(object):
                     sys.exit(1)
         else:
             self._config = config
-
+        if not self._config['url'].endswith('/'):
+            self._config['url'] = self._config['url'] + '/'
         self.profile = self._config.get('profile', '480p.webm')
 
         if not offline:
