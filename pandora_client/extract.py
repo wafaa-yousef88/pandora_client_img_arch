@@ -169,14 +169,13 @@ def video_cmd(video, target, profile, info):
                 '-lag-in-frames', '16',
                 '-auto-alt-ref', '1',
             ]
+        video_settings += ['-map', '0:%s,0'%info['video'][0]['id']]
     else:
         video_settings = ['-vn']
 
     if info['audio']:
+        video_settings += ['-map', '0:%s,1'%info['audio'][0]['id']]
         audio_settings = ['-ar', str(audiorate), '-aq', str(audioquality)]
-        if len(info['audio'][0]) > 1 and info['video']:
-            audio_settings += ['-map', '0:0']
-            audio_settings += ['-map', '0:1']
         ac = info['audio'][0].get('channels', audiochannels)
         ac = min(ac, audiochannels)
         audio_settings += ['-ac', str(ac)]

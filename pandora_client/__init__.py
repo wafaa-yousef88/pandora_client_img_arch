@@ -232,9 +232,9 @@ class Client(object):
             path = [filename]
         for p in path:
             if os.path.exists(p):
-                cmd = encode_cmd(p, self.media_cache(), self.profile, None)
-                cmd = [' ' in c and '"%s"' % c or c for c in cmd]
-                print ' '.join(cmd)
+                cmd = encode_cmd(p.decode('utf-8'), self.media_cache(), self.profile, None)
+                cmd = [' ' in c and u'"%s"' % c or c for c in cmd]
+                print (u' '.join(cmd)).encode('utf-8')
 
     def save_config(self):
         if not self._configfile:
