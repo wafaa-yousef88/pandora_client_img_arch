@@ -178,7 +178,10 @@ def video_cmd(video, target, profile, info):
         video_settings += ['-map', '0:%s,0:%s' % (info['audio'][0]['id'], n)]
         audio_settings = ['-ar', str(audiorate), '-aq', str(audioquality)]
         ac = info['audio'][0].get('channels', audiochannels)
-        ac = min(ac, audiochannels)
+        if ac:
+            ac = min(ac, audiochannels)
+        else:
+            ac = audiochannels
         audio_settings += ['-ac', str(ac)]
         if audiobitrate:
             audio_settings += ['-ab', audiobitrate]
