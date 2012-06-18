@@ -549,12 +549,15 @@ class Client(object):
             sys.exit(1)
         for s in ox.srt.load(filename):
             r = self.api.addAnnotation({
-                'item;': item,
-                'layer;': layer,
+                'item': item,
+                'layer': layer,
                 'in': s['in'],
                 'out': s['out'],
                 'value': s['value'],
             })
+            if r['status']['code'] == 400:
+                print 'failed'
+                sys.exit(1)
             if r['status']['code'] == 403:
                 print 'permission deinied'
                 sys.exit(1)
