@@ -20,14 +20,13 @@ def get_bzr_version():
 setup(
     name="pandora_client",
     version="0.2.%s" % get_bzr_version() ,
-    description='''pandora_client - commandline client and python api for pan.do/ra
-
-can be used interact with pan.do/ra instance via its api.
-or instead of OxFF to keep archive and pan.do/ra instance in sync.
+    description='''pandora_client is a commandline client for pan.do/ra.
+You can use it to import videos into a pan.do/ra system.
+It is currently known to work on Linux and Mac OS X.
 ''',
     author="j",
     author_email="j@mailb.org",
-    url="http://code.0x2620.org/pandora_client",
+    url="http://wiki.0x2620.org/wiki/pandora_client",
     download_url="http://code.0x2620.org/pandora_client/download",
     license="GPLv3",
     scripts = [
