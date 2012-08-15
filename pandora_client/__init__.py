@@ -120,6 +120,14 @@ class Client(object):
             for i in db:
                 c.execute(i)
             conn.commit()
+        if int(self.get('version', 0)) < 3:
+            self.set('version', 3)
+            db = [
+                '''ALTER TABLE file add sha1 varchar(42)'''
+            ]
+            for i in db:
+                c.execute(i)
+            conn.commit()
 
     def _conn(self):
         db_conn = os.path.expanduser(self._config['cache'])
@@ -216,10 +224,12 @@ class Client(object):
             info = utils.avinfo(path)
             if info['size'] > 0:
                 oshash = info['oshash']
+                sha1 = None
                 deleted = -1
                 t = (path, oshash, stat.st_atime, stat.st_ctime, stat.st_mtime,
-                     stat.st_size, json.dumps(info), created, modified, deleted)
-                c.execute(u'INSERT OR REPLACE INTO file values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', t)
+                     stat.st_size, json.dumps(info), created, modified, deleted, sha1)
+                c.execute(u'INSERT OR REPLACE INTO file values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+                          t)
                 conn.commit()
             else:
                 print info
@@ -501,6 +511,20 @@ class Client(object):
                             if not self.signin():
                                 print "failed to login again"
                                 return
+                        if 'rightsLevel' in self._config:
+                            r = self.api.find({'query': {
+                                'conditions': [
+                                    {'key': 'oshash', 'value': oshash, 'operator': '=='}
+                                ],
+                                'keys': ['id'],
+                                'range': [0, 1]
+                            }})
+                            if r['data']['items']:
+                                item = r['data']['items'][0]['id']
+                                r = self.api.edit({
+                                    'item': item,
+                                    'rightsLevel': self._config['rightsLevel']
+                                })
                         break
     
     def files(self, prefix):
