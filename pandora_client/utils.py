@@ -46,7 +46,8 @@ def avinfo(filename):
             if not 'display_aspect_ratio' in info['video'][0]:
                 dar = AspectRatio(info['video'][0]['width'], info['video'][0]['height'])
                 info['video'][0]['display_aspect_ratio'] = dar.ratio
-        del info['path']
+        if 'path' in info:
+            del info['path']
         if os.path.splitext(filename)[-1] in ('.srt', '.sub', '.idx', '.rar') and 'error' in info:
             del info['error']
         if 'code' in info and info['code'] == 'badfile':
