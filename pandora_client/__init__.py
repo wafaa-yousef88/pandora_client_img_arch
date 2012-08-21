@@ -282,7 +282,7 @@ class Client(object):
                 p += '.exe'
             if not os.path.exists(path):
                 print "installing %s in %s" % (p, bindir)
-                ox.net.saveUrl('http://firefogg.org/nightly/%s.%s' % (p, osname), path)
+                ox.net.save_url('http://firefogg.org/nightly/%s.%s' % (p, osname), path)
                 os.chmod(path, 0755)
 
     def add_volume(self, args):
@@ -623,7 +623,7 @@ class API(ox.API):
 
         #upload video
         if os.path.exists(i['video']):
-            size = ox.formatBytes(os.path.getsize(i['video']))
+            size = ox.format_bytes(os.path.getsize(i['video']))
             print "uploading %s of %s (%s)" % (profile, os.path.basename(filename), size)
             url = self.url + 'upload/' + '?profile=' + str(profile) + '&id=' + i['oshash']
             if not self.upload_chunks(url, i['video'], data):
@@ -682,11 +682,11 @@ class API(ox.API):
                 remaining = ""
                 if done:
                     r = math.ceil((elapsed / (done/fsize) - elapsed)/60) * 60 * 1000 
-                    r = ox.formatDuration(r, milliseconds=False, verbosity=2)
+                    r = ox.format_duration(r, milliseconds=False, verbosity=2)
                     if r:
                         remaining = ", %s remaining" % r
                 msg = '%0.2f%% %s of %s done%s' % (
-                    100 * done/fsize, ox.formatBytes(done), ox.formatBytes(fsize), remaining)
+                    100 * done/fsize, ox.format_bytes(done), ox.format_bytes(fsize), remaining)
                 print ''.join([msg, ' ' * (80-len(msg)), '\r']),
                 sys.stdout.flush()
                 form = ox.MultiPartForm()
