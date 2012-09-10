@@ -282,7 +282,7 @@ class Client(object):
                 p += '.exe'
             if not os.path.exists(path):
                 print "installing %s in %s" % (p, bindir)
-                ox.net.save_url('http://firefogg.org/nightly/%s.%s' % (p, osname), path)
+                ox.net.save_url('http://firefogg.org/bin/%s.%s' % (p, osname), path)
                 os.chmod(path, 0755)
 
     def add_volume(self, args):
