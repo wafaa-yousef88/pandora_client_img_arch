@@ -303,11 +303,20 @@ class Client(object):
 
         self._config['volumes'][name] = path
 
-    def scan(self, args):
-        print "checking for new files ..."
+    def active_volumes(self):
+        volumes = {}
         for name in sorted(self._config['volumes']):
             path = self._config['volumes'][name]
             path = os.path.normpath(path)
+            if os.path.exists(path):
+                volumes[name] = path
+        return volumes
+
+    def scan(self, args):
+        print "checking for new files ..."
+        volumes = self.active_volumes()
+        for name in sorted(volumes):
+            path = volumes[name]
             conn, c = self._conn()
             c.execute('SELECT path FROM file WHERE path LIKE ? AND deleted < 0', ["%s%%"%path])
             known_files = [r[0] for r in c.fetchall()]
@@ -383,55 +392,43 @@ class Client(object):
             return
         conn, c = self._conn()
 
-        volumes = {}
-        for name in sorted(self._config['volumes']):
-            path = self._config['volumes'][name]
-            path = os.path.normpath(path)
-
-            volumes[name] = {}
-            volumes[name]['path'] = path
-            if os.path.exists(path):
-                volumes[name]['available'] = True
-            else:
-                volumes[name]['available'] = False
-
+        volumes = self.active_volumes()
         for name in sorted(volumes):
-            if volumes[name]['available']:
-                prefix = volumes[name]['path']
-                files = self.files(prefix)
-                post = {}
-                post['files'] = files['files']
-                post['volume'] = name
-                print 'sending list of files in %s (%s total)' % (name, len(post['files']))
-                r = self.api.update(post)
-                if r['status']['code'] == 200:
-                    #backend works on update request asyncronously, wait for it to finish
-                    if 'taskId' in r['data']:
+            prefix = volumes[name]
+            files = self.files(prefix)
+            post = {}
+            post['files'] = files['files']
+            post['volume'] = name
+            print 'sending list of files in %s (%s total)' % (name, len(post['files']))
+            r = self.api.update(post)
+            if r['status']['code'] == 200:
+                #backend works on update request asyncronously, wait for it to finish
+                if 'taskId' in r['data']:
+                    t = self.api.taskStatus(task_id=r['data']['taskId'])
+                    print 'waiting for server ...'
+                    while t['data']['status'] == 'PENDING':
+                        time.sleep(5)
                         t = self.api.taskStatus(task_id=r['data']['taskId'])
-                        print 'waiting for server ...'
-                        while t['data']['status'] == 'PENDING':
-                            time.sleep(5)
-                            t = self.api.taskStatus(task_id=r['data']['taskId'])
-                        #send empty list to get updated list of requested info/files/data
-                        post = {'info': {}}
-                        r = self.api.update(post)
+                    #send empty list to get updated list of requested info/files/data
+                    post = {'info': {}}
+                    r = self.api.update(post)
 
-                    if r['data']['info']:
-                        info = r['data']['info']
-                        max_info = 100
-                        total = len(info)
-                        sent = 0
-                        for offset in range(0, total, max_info):
-                            post = {'info': {}, 'upload': True}
-                            for oshash in info[offset:offset+max_info]:
-                                _info = self.info(oshash)
-                                if _info:
-                                    post['info'][oshash] = _info
-                            if len(post['info']):
-                                r = self.api.update(post)
-                                sent += len(post['info'])
-                        if sent:
-                            print 'sent info for %s files' % sent
+                if r['data']['info']:
+                    info = r['data']['info']
+                    max_info = 100
+                    total = len(info)
+                    sent = 0
+                    for offset in range(0, total, max_info):
+                        post = {'info': {}, 'upload': True}
+                        for oshash in info[offset:offset+max_info]:
+                            _info = self.info(oshash)
+                            if _info:
+                                post['info'][oshash] = _info
+                        if len(post['info']):
+                            r = self.api.update(post)
+                            sent += len(post['info'])
+                    if sent:
+                        print 'sent info for %s files' % sent
 
         if not 'data' in r:
             print r
