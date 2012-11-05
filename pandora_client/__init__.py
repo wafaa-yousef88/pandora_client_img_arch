@@ -237,7 +237,7 @@ class Client(object):
     def cmd(self, args):
         filename = args[0]
         if len(filename) == 16:
-            path = self.paths(filename)
+            path = self.path(filename)
         else:
             path = [filename]
         for p in path:
