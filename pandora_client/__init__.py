@@ -329,7 +329,9 @@ class Client(object):
                     for filename in sorted(filenames):
                         if isinstance(filename, str):
                             filename = filename.decode('utf-8')
-                        if not filename.startswith('._') and not filename in ('.DS_Store', ):
+                        if not filename.startswith('._') \
+                            and not filename in ('.DS_Store', ) \
+                            and not filename.endswith('~'):
                             file_path = os.path.join(dirpath, filename)
                             if os.path.exists(file_path) and os.stat(file_path).st_size>0:
                                 files.append(file_path)
@@ -487,7 +489,19 @@ class Client(object):
             r = self.api.update(post)
             data = r['data']['data']
             files = r['data']['file']
+            info = r['data']['info']
         
+        if info:
+            print 'info for %d files requested' % len(info)
+            post = {'info': {}}
+            for oshash in info:
+                i = self.info(oshash)
+                if i:
+                    post['info'][oshash] = i
+            if post['info']:
+                print 'uploading info for %d files' % len(post['info'])
+                r = self.api.update(post)
+
         if files:
             print 'uploading %s files' % len(files)
             for oshash in files:
