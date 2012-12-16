@@ -64,6 +64,16 @@ def frame(video, target, position):
     r = run_command(cmd)
     return r == 0
 
+def supported_formats():
+    p = subprocess.Popen([command('ffmpeg'), '-codecs'],
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    stdout, stderr = p.communicate()
+    return {
+        #'ogg': 'libtheora' in stdout and 'libvorbis' in stdout,
+        'webm': 'libvpx' in stdout and 'libvorbis' in stdout,
+        'mp4': 'libx264' in stdout and 'libvo_aacenc' in stdout,
+    }
+
 def video_cmd(video, target, profile, info):
 
     if not os.path.exists(target):
@@ -169,6 +179,47 @@ def video_cmd(video, target, profile, info):
                 '-lag-in-frames', '16',
                 '-auto-alt-ref', '1',
             ]
+        if format == 'mp4':
+            #quicktime does not support bpyramid
+            '''
+            video_settings += [
+                '-vcodec', 'libx264',
+                '-flags', '+loop+mv4',
+                '-cmp', '256',
+                '-partitions', '+parti4x4+parti8x8+partp4x4+partp8x8+partb8x8',
+                '-me_method', 'hex',
+                '-subq', '7',
+                '-trellis', '1',
+                '-refs', '5',
+                '-bf', '3',
+                '-flags2', '+bpyramid+wpred+mixed_refs+dct8x8',
+                '-coder', '1',
+                '-me_range', '16',
+                '-keyint_min', '25', #FIXME: should this be related to fps?
+                '-sc_threshold','40',
+                '-i_qfactor', '0.71',
+                '-qmin', '10', '-qmax', '51',
+                '-qdiff', '4'
+            ]
+            '''
+            video_settings += [
+                '-vcodec', 'libx264',
+                '-flags', '+loop+mv4',
+                '-cmp', '256',
+                '-partitions', '+parti4x4+parti8x8+partp4x4+partp8x8+partb8x8',
+                '-me_method', 'hex',
+                '-subq', '7',
+                '-trellis', '1',
+                '-refs', '5',
+                '-bf', '0',
+                '-flags2', '+mixed_refs',
+                '-coder', '0',
+                '-me_range', '16',
+                '-sc_threshold', '40',
+                '-i_qfactor', '0.71',
+                '-qmin', '10', '-qmax', '51',
+                '-qdiff', '4'
+            ]
         video_settings += ['-map', '0:%s,0:0'%info['video'][0]['id']]
     else:
         video_settings = ['-vn']
@@ -185,31 +236,41 @@ def video_cmd(video, target, profile, info):
         audio_settings += ['-ac', str(ac)]
         if audiobitrate:
             audio_settings += ['-ab', audiobitrate]
-        audio_settings +=['-acodec', 'libvorbis']
+        if format == 'mp4':
+            audio_settings += ['-acodec', 'libvo_aacenc']
+        else:
+            audio_settings += ['-acodec', 'libvorbis']
     else:
         audio_settings = ['-an']
 
     cmd = [command('ffmpeg'), '-y', '-i', video, '-threads', '4'] \
           + audio_settings \
-          + video_settings \
-          + ['-f','webm', target]
+          + video_settings
+
+    if format == 'webm':
+        cmd += ['-f', 'webm', target]
+    elif format == 'mp4':
+        #mp4 needs postprocessing(qt-faststart), write to temp file
+        cmd += ["%s.mp4" % target]
+    else:
+        cmd += [target]
     return cmd
 
 def video(video, target, profile, info):
+    profile, format = profile.split('.')
     cmd = video_cmd(video, target, profile, info)
     #r = run_command(cmd, -1)
     p = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE)
-    '''
-    p = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    line = p.stderr.readline()
-    while line:
-        if line.startswith('frame='):
-            frames = line.split('=')[1].strip().split(' ')[0]
-        line = p.stderr.readline()
-    '''
     try:
         p.wait()
         r = p.returncode
+        if format == 'mp4':
+            cmd = [command('qt-faststart'), "%s.mp4" % target, target]
+            p = subprocess.Popen(cmd, stdin=subprocess.PIPE,
+                                      stdout=open('/dev/null', 'w'),
+                                      stderr=subprocess.STDOUT)
+            p.communicate()
+            os.unlink("%s.mp4" % target)
         print 'Input:\t', video
         print 'Output:\t', target
     except KeyboardInterrupt:
@@ -218,5 +279,7 @@ def video(video, target, profile, info):
             print "\n\ncleanup unfinished encoding:\nremoving", target
             print "\n"
             os.unlink(target)
+        if format == 'mp4' and os.path.exists("%s.mp4" % target):
+            os.unlink("%s.mp4" % target)
         sys.exit(1)
     return r == 0
