@@ -368,7 +368,9 @@ class Client(object):
                             '/versions' in path.lower():
                             return False
                     return True
-                files = filter(no_extras, files)    
+                files = filter(no_extras, files)
+            else:
+                files = [len(f) == 16 and f or ox.oshash(f) for f in args]
         else:
             if not self.user:
                 print "you need to login or run pandora_client extract offline"
@@ -483,6 +485,7 @@ class Client(object):
                 else:
                     data.append(arg)
             files = []
+            info = []
         else:
             #send empty list to get updated list of requested info/files/data
             post = {'info': {}}
