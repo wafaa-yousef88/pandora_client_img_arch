@@ -505,14 +505,6 @@ class Client(object):
                 print 'uploading info for %d files' % len(post['info'])
                 r = self.api.update(post)
 
-        if files:
-            print 'uploading %s files' % len(files)
-            for oshash in files:
-                for path in self.path(oshash):
-                    if os.path.exists(path):
-                        self.api.uploadData(path, oshash)
-                        break
-
         if data:
             print 'encoding and uploading %s videos' % len(data)
             for oshash in data:
@@ -540,6 +532,15 @@ class Client(object):
                                     'rightsLevel': self._config['rightsLevel']
                                 })
                         break
+
+        if files:
+            print 'uploading %s files' % len(files)
+            for oshash in files:
+                for path in self.path(oshash):
+                    if os.path.exists(path):
+                        self.api.uploadData(path, oshash)
+                        break
+
     
     def files(self, prefix):
         conn, c = self._conn()
