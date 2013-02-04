@@ -178,6 +178,7 @@ class Client(object):
             r = self.api.signin(username=self._config['username'], password=self._config['password'])
             if r['status']['code'] == 200 and not 'errors' in r['data']:
                 self.user = r['data']['user']
+                self.folderdepth = r['data']['site'].get('folderdepth', 3)
             else:
                 self.user = False
                 print '\nlogin failed! check config\n\n'
@@ -317,6 +318,8 @@ class Client(object):
         volumes = self.active_volumes()
         for name in sorted(volumes):
             path = volumes[name]
+            if not path.endswith('/'):
+                path += '/'
             conn, c = self._conn()
             c.execute('SELECT path FROM file WHERE path LIKE ? AND deleted < 0', ["%s%%"%path])
             known_files = [r[0] for r in c.fetchall()]
@@ -345,6 +348,16 @@ class Client(object):
                 for f in deleted_files:
                     c.execute('UPDATE file SET deleted=? WHERE path=?', (deleted, f))
                 conn.commit()
+
+            ignored=[]
+            for f in files:
+                f = f[len(path):]
+                if len(f.split('/')) == self.folder_depth and not 'Versions' in f or 'Extras' in f:
+                    ignored.append(f)
+            if ignored:
+                example = self.folder_depth == 4 and 'L/Last, First/Title (Year)/Title.avi' or 'T/Title/Title.dv'
+                print 'The following files do not conform to the required folder structure and will be ignored. only files like this are synced:\n\t%s' % example
+                print '\n'.join(ignored)
 
             print "scanned volume %s: %s files, %s new, %s deleted" % (
                     name, len(files), len(new_files), len(deleted_files))
