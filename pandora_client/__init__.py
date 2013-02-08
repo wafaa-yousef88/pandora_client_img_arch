@@ -172,13 +172,13 @@ class Client(object):
         self.api.DEBUG = DEBUG
         if self.signin():
             self.profile = "%sp.webm" % max(self.api.site['video']['resolutions'])
+        self.folderdepth = self.api.site.get('folderdepth', 3)
 
     def signin(self):
         if 'username' in self._config:
             r = self.api.signin(username=self._config['username'], password=self._config['password'])
             if r['status']['code'] == 200 and not 'errors' in r['data']:
                 self.user = r['data']['user']
-                self.folderdepth = r['data']['site'].get('folderdepth', 3)
             else:
                 self.user = False
                 print '\nlogin failed! check config\n\n'
@@ -352,10 +352,10 @@ class Client(object):
             ignored=[]
             for f in files:
                 f = f[len(path):]
-                if len(f.split('/')) == self.folder_depth and not 'Versions' in f or 'Extras' in f:
+                if len(f.split('/')) != self.folderdepth and not 'Versions' in f or 'Extras' in f:
                     ignored.append(f)
             if ignored:
-                example = self.folder_depth == 4 and 'L/Last, First/Title (Year)/Title.avi' or 'T/Title/Title.dv'
+                example = self.folderdepth == 4 and 'L/Last, First/Title (Year)/Title.avi' or 'T/Title/Title.dv'
                 print 'The following files do not conform to the required folder structure and will be ignored. only files like this are synced:\n\t%s' % example
                 print '\n'.join(ignored)
 

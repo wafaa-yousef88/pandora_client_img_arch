@@ -257,8 +257,8 @@ def video_cmd(video, target, profile, info):
     return cmd
 
 def video(video, target, profile, info):
-    profile, format = profile.split('.')
     cmd = video_cmd(video, target, profile, info)
+    profile, format = profile.split('.')
     #r = run_command(cmd, -1)
     p = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE)
     try:
