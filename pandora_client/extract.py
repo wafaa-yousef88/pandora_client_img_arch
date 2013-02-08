@@ -225,7 +225,10 @@ def video_cmd(video, target, profile, info):
         video_settings = ['-vn']
 
     if info['audio']:
-        n = video_settings == ['-vn'] and 0 or 1
+        if video_settings == ['-vn'] or not info['video']:
+            n = 0
+        else:
+            n = 1
         video_settings += ['-map', '0:%s,0:%s' % (info['audio'][0]['id'], n)]
         audio_settings = ['-ar', str(audiorate), '-aq', str(audioquality)]
         ac = info['audio'][0].get('channels', audiochannels)
