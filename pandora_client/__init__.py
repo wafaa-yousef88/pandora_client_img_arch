@@ -155,9 +155,19 @@ class Client(object):
     def info(self, oshash):
         conn, c = self._conn()
         c.execute('SELECT info FROM file WHERE oshash = ?', (oshash, ))
+        info = None
         for row in c:
-            return json.loads(row[0])
-        return None 
+            info = json.loads(row[0])
+            break
+        path = self.path(oshash)
+        if info and path:
+            path = '/'.join(path[0].split('/')[-self.folderdepth:])
+            info.update(ox.movie.parse_path(path))
+            if self.folderdepth == 3:
+                info['director'] = []
+                info['directorSort'] = []
+        print info
+        return info
 
     def path(self, oshash):
         conn, c = self._conn()
