@@ -166,7 +166,6 @@ class Client(object):
             if self.folderdepth == 3:
                 info['director'] = []
                 info['directorSort'] = []
-        print info
         return info
 
     def path(self, oshash):
