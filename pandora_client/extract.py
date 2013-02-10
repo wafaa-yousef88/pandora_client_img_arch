@@ -277,6 +277,7 @@ def video(video, target, profile, info):
         print 'Input:\t', video
         print 'Output:\t', target
     except KeyboardInterrupt:
+        p.kill()
         r = 1
         if os.path.exists(target):
             print "\n\ncleanup unfinished encoding:\nremoving", target
