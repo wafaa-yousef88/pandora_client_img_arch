@@ -690,7 +690,7 @@ class API(ox.API):
         if os.path.exists(self._resume_file):
             with open(self._resume_file) as f:
                 resume = json.load(f)
-            if resume.get('url') != url:
+            if resume.get('chunkUploadUrl') != url:
                 resume = None
         if resume:
             data = resume
@@ -758,7 +758,8 @@ class API(ox.API):
                     with open(self._resume_file, 'w') as r:
                         json.dump({
                             'uploadUrl': uploadUrl,
-                            'url': url,
+                            'chunkUploadUrl': url,
+                            'url': result_url,
                             'offset': done
                         }, r, indent=2)
                     chunk = f.read(CHUNK_SIZE)
