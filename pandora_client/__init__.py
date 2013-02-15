@@ -766,9 +766,11 @@ class API(ox.API):
             if os.path.exists(self._resume_file):
                 os.unlink(self._resume_file)
                 resume = None
-            print ' ' * 80
             if result_url:
-                print result_url
+                print result_url + (' ' * (80-len(result_url)))
+            else:
+                print ' ' * 80
+            print ''
             return data and 'result' in data and data.get('result') == 1
         else:
             if DEBUG:
