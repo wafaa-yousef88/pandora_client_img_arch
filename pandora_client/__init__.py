@@ -36,17 +36,22 @@ def encode(filename, prefix, profile, info=None, extract_frames=True):
     oshash = info['oshash']
     frames = []
     cache = os.path.join(prefix, os.path.join(*utils.hash_prefix(oshash)))
-    if info['video'] and extract_frames:
-        for pos in utils.video_frame_positions(info['duration']):
-            frame_name = '%s.png' % pos
-            frame_f = os.path.join(cache, frame_name)
-            if not os.path.exists(frame_f):
-                print frame_f
-                extract.frame(filename, frame_f, pos)
-            frames.append(frame_f)
-    video_f = os.path.join(cache, profile)
-    if not os.path.exists(video_f):
-        extract.video(filename, video_f, profile, info)
+    if info.get('video'):
+        if extract_frames:
+            for pos in utils.video_frame_positions(info['duration']):
+                frame_name = '%s.png' % pos
+                frame_f = os.path.join(cache, frame_name)
+                if not os.path.exists(frame_f):
+                    print frame_f
+                    extract.frame(filename, frame_f, pos)
+                frames.append(frame_f)
+        video_f = os.path.join(cache, profile)
+        if not os.path.exists(video_f):
+            extract.video(filename, video_f, profile, info)
+    else:
+        print info
+        print filename
+        return None
     return {
         'info': info,
         'oshash': oshash,
@@ -181,7 +186,7 @@ class Client(object):
         self.api.DEBUG = DEBUG
         if self.signin():
             self.profile = "%sp.webm" % max(self.api.site['video']['resolutions'])
-        self.folderdepth = self.api.site.get('folderdepth', 3)
+        self.folderdepth = self.api.site['site'].get('folderdepth', 3)
 
     def signin(self):
         if 'username' in self._config:
@@ -345,7 +350,8 @@ class Client(object):
                             and not filename in ('.DS_Store', ) \
                             and not filename.endswith('~'):
                             file_path = os.path.join(dirpath, filename)
-                            if os.path.exists(file_path) and os.stat(file_path).st_size>0:
+                            if not 'Extras/' in file_path \
+                                and os.path.exists(file_path) and os.stat(file_path).st_size>0:
                                 files.append(file_path)
                                 self.scan_file(file_path)
             
@@ -536,9 +542,8 @@ class Client(object):
                         info = self.info(oshash)
                         if not self.api.uploadVideo(path,
                                                 data, self.profile, info):
-                            if not self.signin():
-                                print "failed to login again"
-                                return
+                            print 'video upload failed, giving up, please try again'
+                            return
                         if 'rightsLevel' in self._config:
                             r = self.api.find({'query': {
                                 'conditions': [
