@@ -497,14 +497,14 @@ class Client(object):
             for arg in args:
                 if os.path.exists(arg):
                     oshash = ox.oshash(arg)
-                    r = self.api.findFiles({'query': {
+                    r = self.api.findMedia({'query': {
                         'conditions': [{'key': 'oshash', 'value': oshash}]
                     }})['data']['items']
                     if r == 0:
                         self.scan_file(arg)
                         info = self.info(oshash)
                         filename = os.path.basename(arg)
-                        r = self.api.addFile({
+                        r = self.api.addMedia({
                             'id': oshash,
                             'info': info,
                             'filename': filename
