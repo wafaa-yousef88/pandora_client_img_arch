@@ -92,6 +92,14 @@ def video_cmd(video, target, profile, info):
     profile, format = profile.split('.')
     bpp = 0.17
 
+    if profile == '1080p':
+        height = 1080
+
+        audiorate = 48000
+        audioquality = 6
+        audiobitrate = None
+        audiochannels = None
+
     if profile == '720p':
         height = 720
 
