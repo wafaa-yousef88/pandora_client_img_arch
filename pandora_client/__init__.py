@@ -694,7 +694,10 @@ class API(ox.API):
         resume = None
         if os.path.exists(self._resume_file):
             with open(self._resume_file) as f:
-                resume = json.load(f)
+                try:
+                    resume = json.load(f)
+                except:
+                    resume = {}
             if resume.get('chunkUploadUrl') != url:
                 resume = None
         if resume:
