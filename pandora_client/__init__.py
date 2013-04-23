@@ -186,7 +186,7 @@ class Client(object):
         self.api.DEBUG = DEBUG
         if self.signin():
             self.profile = "%sp.webm" % max(self.api.site['video']['resolutions'])
-        self.folderdepth = self.api.site['site'].get('folderdepth', 3)
+        self.folderdepth = self._config.get('folderdepth', self.api.site['site'].get('folderdepth', 3))
 
     def signin(self):
         if 'username' in self._config:
