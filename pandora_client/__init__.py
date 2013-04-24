@@ -5,6 +5,8 @@
 from __future__ import division, with_statement
 
 import getpass
+from glob import glob
+import imp
 import json
 import math
 import os
@@ -45,9 +47,9 @@ def encode(filename, prefix, profile, info=None, extract_frames=True):
                     print frame_f
                     extract.frame(filename, frame_f, pos)
                 frames.append(frame_f)
-        video_f = os.path.join(cache, profile)
-        if not os.path.exists(video_f):
-            extract.video(filename, video_f, profile, info)
+        media_f = os.path.join(cache, profile)
+        if not os.path.exists(media_f):
+            extract.video(filename, media_f, profile, info)
     else:
         print info
         print filename
@@ -56,7 +58,7 @@ def encode(filename, prefix, profile, info=None, extract_frames=True):
         'info': info,
         'oshash': oshash,
         'frames': frames,
-        'video': video_f
+        'media': media_f
     }
 
 def encode_cmd(filename, prefix, profile, info):
@@ -66,8 +68,40 @@ def encode_cmd(filename, prefix, profile, info):
         return None
     oshash = info['oshash']
     cache = os.path.join(prefix, os.path.join(*utils.hash_prefix(oshash)))
-    video_f = os.path.join(cache, profile)
-    return extract.video_cmd(filename, video_f, profile, info)
+    media_f = os.path.join(cache, profile)
+    return extract.video_cmd(filename, media_f, profile, info)
+
+def parse_path(client, path):
+    '''
+        args:
+            path   - path without volume prefix 
+            client - Client instance
+        return:
+            return None if file will not be used, dict with parsed item information otherwise
+    '''
+    if len(path.split('/')) != client.folderdepth:
+        return None
+    info = ox.movie.parse_path(path)
+    if client.folderdepth == 3:
+        info['director'] = []
+        info['directorSort'] = []
+    return info
+
+def example_path(client):
+    return '\t' + (client.folderdepth == 4 and 'L/Last, First/Title (Year)/Title.avi' or 'T/Title/Title.dv')
+
+def ignore_file(client, path):
+    filename = os.path.basename(path)
+    if filename.startswith('._') \
+        or filename in ('.DS_Store', ) \
+        or filename.endswith('~') \
+        or 'Extras/' in path \
+        or 'Versions/' in path \
+        or not os.path.exists(path) \
+        or os.stat(path).st_size == 0:
+        return True
+    return False
+
 
 class Client(object):
     _configfile = None
@@ -81,6 +115,8 @@ class Client(object):
                 except ValueError:
                     print "Failed to parse config at", config
                     sys.exit(1)
+            base = self._config.get('plugin.d', '~/.ox/client.d')
+            self.load_plugins(base)
         else:
             self._config = config
         if not self._config['url'].endswith('/'):
@@ -134,6 +170,23 @@ class Client(object):
                 c.execute(i)
             conn.commit()
 
+    def load_plugins(self, base='~/.ox/client.d'):
+        global parse_path, example_path, ignore_file, encode, encode_cmd
+        base = os.path.expanduser(base)
+        for path in sorted(glob('%s/*.py' % base)):
+            with open(path) as fp:
+                module = imp.load_source(os.path.basename(path).split('.')[0], base, fp)
+                if hasattr(module, 'parse_path'):
+                    parse_path = module.parse_path
+                if hasattr(module, 'example_path'):
+                    example_path = module.example_path
+                if hasattr(module, 'ignore_file'):
+                    ignore_file = module.ignore_file
+                if hasattr(module, 'encode'):
+                    encode = module.encode
+                if hasattr(module, 'encode_cmd'):
+                    encode_cmd = module.encode_cmd
+
     def _conn(self):
         db_conn = os.path.expanduser(self._config['cache'])
         if not os.path.exists(os.path.dirname(db_conn)):
@@ -167,10 +220,7 @@ class Client(object):
         path = self.path(oshash)
         if info and path:
             path = '/'.join(path[0].split('/')[-self.folderdepth:])
-            info.update(ox.movie.parse_path(path))
-            if self.folderdepth == 3:
-                info['director'] = []
-                info['directorSort'] = []
+            info.update(parse_path(self, path) or {})
         return info
 
     def path(self, oshash):
@@ -339,6 +389,7 @@ class Client(object):
             known_files = [r[0] for r in c.fetchall()]
 
             files = []
+            unknown = []
             for dirpath, dirnames, filenames in os.walk(path, followlinks=True):
                 if isinstance(dirpath, str):
                     dirpath = dirpath.decode('utf-8')
@@ -346,15 +397,25 @@ class Client(object):
                     for filename in sorted(filenames):
                         if isinstance(filename, str):
                             filename = filename.decode('utf-8')
-                        if not filename.startswith('._') \
-                            and not filename in ('.DS_Store', ) \
-                            and not filename.endswith('~'):
-                            file_path = os.path.join(dirpath, filename)
-                            if not 'Extras/' in file_path \
-                                and os.path.exists(file_path) and os.stat(file_path).st_size>0:
-                                files.append(file_path)
-                                self.scan_file(file_path)
-            
+                        file_path = os.path.join(dirpath, filename)
+                        if not ignore_file(self, file_path):
+                            files.append(file_path)
+            for f in files:
+                if not parse_path(self, f[len(path):]):
+                    unknown.append(f)
+
+            files = list(set(files) - set(unknown))
+            for f in files:
+                self.scan_file(f)
+
+            if unknown:
+                example = example_path(self)
+                print 'Files need to be in a folder structure like this:\n%s\n' % example
+                print 'The following files do not fit into the folder structure and will not be synced:'
+                print '\t',
+                print '\n\t'.join([f[len(path):] for f in unknown])
+                print ''
+
             deleted_files = filter(lambda f: f not in files, known_files)
             new_files = filter(lambda f: f not in known_files, files)
             conn, c = self._conn()
@@ -363,16 +424,6 @@ class Client(object):
                 for f in deleted_files:
                     c.execute('UPDATE file SET deleted=? WHERE path=?', (deleted, f))
                 conn.commit()
-
-            ignored=[]
-            for f in files:
-                f = f[len(path):]
-                if len(f.split('/')) != self.folderdepth and not 'Versions' in f or 'Extras' in f:
-                    ignored.append(f)
-            if ignored:
-                example = self.folderdepth == 4 and 'L/Last, First/Title (Year)/Title.avi' or 'T/Title/Title.dv'
-                print 'The following files do not conform to the required folder structure and will be ignored. only files like this are synced:\n\t%s' % example
-                print '\n'.join(ignored)
 
             print "scanned volume %s: %s files, %s new, %s deleted" % (
                     name, len(files), len(new_files), len(deleted_files))
@@ -390,13 +441,6 @@ class Client(object):
 
                     if os.path.exists(path):
                         files += self.files(path)['info']
-                def no_extras(oshash):
-                    for path in self.path(oshash):
-                        if '/extras' in path.lower() or \
-                            '/versions' in path.lower():
-                            return False
-                    return True
-                files = filter(no_extras, files)
             else:
                 files = [len(f) == 16 and f or ox.oshash(f) for f in args]
         else:
@@ -663,12 +707,12 @@ class API(ox.API):
                     form.add_file('frame', fname, open(frame, 'rb'))
             r = self._json_request(self.url, form)
 
-        #upload video
-        if os.path.exists(i['video']):
-            size = ox.format_bytes(os.path.getsize(i['video']))
+        #upload media 
+        if os.path.exists(i['media']):
+            size = ox.format_bytes(os.path.getsize(i['media']))
             print "uploading %s of %s (%s)" % (profile, os.path.basename(filename), size)
             url = self.url + 'upload/' + '?profile=' + str(profile) + '&id=' + i['oshash']
-            if not self.upload_chunks(url, i['video'], data):
+            if not self.upload_chunks(url, i['media'], data):
                 if DEBUG:
                     print "failed"
                 return False
