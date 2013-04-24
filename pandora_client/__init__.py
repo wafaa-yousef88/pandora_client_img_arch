@@ -217,10 +217,6 @@ class Client(object):
         for row in c:
             info = json.loads(row[0])
             break
-        path = self.path(oshash)
-        if info and path:
-            path = '/'.join(path[0].split('/')[-self.folderdepth:])
-            info.update(parse_path(self, path) or {})
         return info
 
     def path(self, oshash):
@@ -373,6 +369,8 @@ class Client(object):
         for name in sorted(self._config['volumes']):
             path = self._config['volumes'][name]
             path = os.path.normpath(path)
+            if not path.endswith('/'):
+                path += '/'
             if os.path.exists(path):
                 volumes[name] = path
         return volumes
@@ -382,8 +380,6 @@ class Client(object):
         volumes = self.active_volumes()
         for name in sorted(volumes):
             path = volumes[name]
-            if not path.endswith('/'):
-                path += '/'
             conn, c = self._conn()
             c.execute('SELECT path FROM file WHERE path LIKE ? AND deleted < 0', ["%s%%"%path])
             known_files = [r[0] for r in c.fetchall()]
@@ -501,6 +497,12 @@ class Client(object):
                         post = {'info': {}, 'upload': True}
                         for oshash in info[offset:offset+max_info]:
                             _info = self.info(oshash)
+                            for path in self.path(oshash):
+                                path = path[len(prefix):]
+                                i = parse_path(self, path)
+                                if i:
+                                    _info.update(i)
+                                    break
                             if _info:
                                 post['info'][oshash] = _info
                         if len(post['info']):
