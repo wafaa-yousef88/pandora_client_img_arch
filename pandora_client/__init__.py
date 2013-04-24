@@ -390,6 +390,7 @@ class Client(object):
 
             files = []
             unknown = []
+            ignored = []
             for dirpath, dirnames, filenames in os.walk(path, followlinks=True):
                 if isinstance(dirpath, str):
                     dirpath = dirpath.decode('utf-8')
@@ -400,6 +401,8 @@ class Client(object):
                         file_path = os.path.join(dirpath, filename)
                         if not ignore_file(self, file_path):
                             files.append(file_path)
+                        else:
+                            ignored.append(file_path)
             for f in files:
                 if not parse_path(self, f[len(path):]):
                     unknown.append(f)
@@ -425,8 +428,8 @@ class Client(object):
                     c.execute('UPDATE file SET deleted=? WHERE path=?', (deleted, f))
                 conn.commit()
 
-            print "scanned volume %s: %s files, %s new, %s deleted" % (
-                    name, len(files), len(new_files), len(deleted_files))
+            print "scanned volume %s: %s files, %s new, %s deleted, %s ignored" % (
+                    name, len(files), len(new_files), len(deleted_files), len(ignored))
 
     def extract(self, args):
         conn, c = self._conn()
