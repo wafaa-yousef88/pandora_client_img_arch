@@ -25,7 +25,11 @@ if __name__ == '__main__':
     (opts, args) = parser.parse_args()
 
     opts.config = os.path.expanduser(opts.config)
-    if None in (opts.config, ) or (args and args[0] != 'config' and not os.path.exists(opts.config)):
+    if (args and args[0] not in ('config', 'client') and not os.path.exists(opts.config)):
+        print 'no configuration found, run "%s config" or specify one with -c' % sys.argv[0]
+        sys.exit(1)
+
+    if None in (opts.config, ):
         parser.print_help()
         sys.exit()
 
@@ -42,6 +46,8 @@ for more information visit https://wiki.0x2620.org/wiki/pandora_client''' % ', '
     action = args[0]
 
     offline = action in config or action == 'client'
+    if action == 'client':
+        opts.config = {'url': '', 'cache': '~/.ox/client.sqlite', 'media-cache': '~/.ox/media'}
     if action == 'config':
         if not os.path.exists(opts.config):
             with open(opts.config, 'w') as f:

@@ -711,7 +711,7 @@ class Client(object):
 
     def client(self, args):
         if not args:
-            print 'you must pass url to server(i.e. http://192.168.1.1:8789)'
+            print 'usage: %s client <server_url>\n\ti.e. %s client http://192.168.1.1:8789' % (sys.argv[0], sys.argv[0])
             sys.exit(1)
         import client
         url = args[0]
