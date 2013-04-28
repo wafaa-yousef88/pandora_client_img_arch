@@ -169,9 +169,19 @@ class Client(object):
             for i in db:
                 c.execute(i)
             conn.commit()
+        if int(self.get('version', 0)) < 4:
+            self.set('version', 4)
+            db = [
+                '''ALTER TABLE encode add status varchar(255)''',
+                '''CREATE INDEX IF NOT EXISTS encode_status_idx ON encode (status)''',
+                '''ALTER TABLE encode ADD modified INT DEFAULT 0''',
+            ]
+            for i in db:
+                c.execute(i)
+            conn.commit()
 
     def load_plugins(self, base='~/.ox/client.d'):
-        global parse_path, example_path, ignore_file, encode, encode_cmd
+        global parse_path, example_path, ignore_file, encode
         base = os.path.expanduser(base)
         for path in sorted(glob('%s/*.py' % base)):
             with open(path) as fp:
@@ -184,8 +194,6 @@ class Client(object):
                     ignore_file = module.ignore_file
                 if hasattr(module, 'encode'):
                     encode = module.encode
-                if hasattr(module, 'encode_cmd'):
-                    encode_cmd = module.encode_cmd
 
     def _conn(self):
         db_conn = os.path.expanduser(self._config['cache'])
@@ -254,17 +262,37 @@ class Client(object):
     def set_encodes(self, site, files):
         conn, c = self._conn()
         c.execute('DELETE FROM encode WHERE site = ?' , (site, ))
+        conn.commit()
+        self.add_encodes(site, files)
+
+    def get_encodes(self, site, status=''):
+        conn, c = self._conn()
+        sql = 'SELECT oshash FROM encode WHERE site = ? AND status = ?'
+        args = [site, status]
+        c.execute(sql, tuple(args))
+        return [row[0] for row in c]
+
+    def add_encodes(self, site, files):
+        conn, c = self._conn()
         for oshash in files:
-            c.execute(u'INSERT INTO encode VALUES (?, ?)', (oshash, site))
+            c.execute(u'INSERT INTO encode VALUES (?, ?, ?, 0)', (oshash, site, ''))
         conn.commit()
 
-    def get_encodes(self, site):
-        conn, c = self._conn()
-        c.execute('SELECT oshash FROM encodes WHERE site = ?', (site, ))
-        files = []
-        for row in c:
-            files.append(row[0])
-        return files
+    def update_encodes(self, add=False):
+        #send empty list to get updated list of requested info/files/data
+        site = self._config['url']
+        post = {'info': {}}
+        r = self.api.update(post)
+        files = r['data']['data']
+        if add:
+            conn, c = self._conn()
+            sql = 'SELECT oshash FROM encode WHERE site = ?'
+            c.execute(sql, (site, ))
+            known = [row[0] for row in c]
+            files = list(set(files) - set(known))
+            self.add_encodes(site, files)
+        else:
+            self.set_encodes(site, files)
 
     def scan_file(self, path):
         conn, c = self._conn()
@@ -427,6 +455,7 @@ class Client(object):
             print "scanned volume %s: %s files, %s new, %s deleted, %s ignored" % (
                     name, len(files), len(new_files), len(deleted_files), len(ignored))
 
+
     def extract(self, args):
         conn, c = self._conn()
         if args:
@@ -446,11 +475,7 @@ class Client(object):
             if not self.user:
                 print "you need to login or run pandora_client extract offline"
                 return
-            #send empty list to get updated list of requested info/files/data
-            post = {'info': {}}
-            r = self.api.update(post)
-            files = r['data']['data']
-            self.set_encodes(self._config['url'], files)
+            self.update_encodes()
 
         for oshash in files:
             for path in self.path(oshash):
@@ -679,6 +704,24 @@ class Client(object):
             elif r['status']['code'] == 404:
                 print 'item not found'
                 sys.exit(1)
+
+    def server(self, args):
+        import server
+        server.run(self)
+
+    def client(self, args):
+        if not args:
+            print 'you must pass url to server(i.e. http://192.168.1.1:8789)'
+            sys.exit(1)
+        import client
+        url = args[0]
+        url = 'http://127.0.0.1:8789'
+        if len(args) == 1:
+            name = socket.gethostname()
+        else:
+            name = args[1]
+        c = client.DistributedClient(url, name)
+        c.run()
 
 class API(ox.API):
     __name__ = 'pandora_client'

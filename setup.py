@@ -36,7 +36,7 @@ It is currently known to work on Linux and Mac OS X.
         'pandora_client'
     ],
     install_requires=[
-        'ox >= 2.1.1'
+        'ox >= 2.1.541'
     ],
     keywords = [
 ],

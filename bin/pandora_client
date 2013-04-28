@@ -31,13 +31,17 @@ if __name__ == '__main__':
 
     actions = ('scan', 'sync', 'upload', 'extract', 'clean', 'cmd', 'import_srt')
     config = ('config', 'add_volume')
-    if not args or args[0] not in actions + config:
-        parser.error('you must specify a valid action. \n\t\tknown actions are: %s\n\t\tconfiguration:     config, add_volume' % ', '.join(actions))
+    server = ('server', 'client')
+    if not args or args[0] not in actions + config + server:
+        parser.error('''you must specify a valid action.
+\t\tknown actions are: %s
+\t\tconfiguration:     config, add_volume
+\t\tdistributed encoding: server, client
+for more information visit https://wiki.0x2620.org/wiki/pandora_client''' % ', '.join(actions))
 
     action = args[0]
 
-    offline = False
-    offline = action in config
+    offline = action in config or action == 'client'
     if action == 'config':
         if not os.path.exists(opts.config):
             with open(opts.config, 'w') as f:
