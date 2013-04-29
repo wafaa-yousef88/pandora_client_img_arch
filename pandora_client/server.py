@@ -131,7 +131,7 @@ class Server(Resource):
                         url = 'http://%s:%s/get/%s' % (request.host.host, request.host.port, oshash)
                         output = '/tmp/%s.%s' % (oshash, self.client.profile)
                         response['cmd'] = extract.video_cmd(url, output, self.client.profile, info)
-                        response['cmd'][0] = 'avconv'
+                        response['cmd'][0] = 'ffmpeg'
                         response['output'] = output
                         self.update_status(oshash, 'active')
                         print oshash, f

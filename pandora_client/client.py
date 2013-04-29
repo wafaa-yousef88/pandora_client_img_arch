@@ -9,6 +9,7 @@ import sys
 
 import requests
 
+import extract
 
 class DistributedClient:
 
@@ -39,6 +40,7 @@ class DistributedClient:
         return False
 
     def encode(self, oshash, cmd, output):
+        cmd[0] = extract.command('ffmpeg')
         try:
             p = subprocess.Popen(cmd)
             r = None
