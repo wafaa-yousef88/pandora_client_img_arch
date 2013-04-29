@@ -381,7 +381,7 @@ class Client(object):
         name = args[0]
         path = args[1]
         if not path.endswith('/'):
-            path = path+'/'
+            path += '/'
         if os.path.isdir(path):
             if name in self._config['volumes']:
                 print "updated %s to %s" % (name, path)
@@ -466,7 +466,8 @@ class Client(object):
                 for name in self._config['volumes']:
                     path = self._config['volumes'][name]
                     path = os.path.normpath(path)
-
+                    if not path.endswith('/'):
+                        path += '/'
                     if os.path.exists(path):
                         files += self.files(path)['info']
             else:
@@ -644,6 +645,8 @@ class Client(object):
 
     
     def files(self, prefix):
+        if not prefix.endswith('/'):
+            prefix += '/'
         conn, c = self._conn()
         files = {}
         files['info'] = {}
@@ -661,7 +664,7 @@ class Client(object):
             files['info'][oshash] = info
             files['files'].append({
                 'oshash': oshash,
-                'path': path[len(prefix)+1:],
+                'path': path[len(prefix):],
                 'atime': row[3],
                 'ctime': row[4],
                 'mtime': row[5],
