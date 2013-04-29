@@ -718,7 +718,6 @@ class Client(object):
             sys.exit(1)
         import client
         url = args[0]
-        url = 'http://127.0.0.1:8789'
         if len(args) == 1:
             name = socket.gethostname()
         else:
