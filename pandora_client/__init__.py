@@ -468,8 +468,12 @@ class Client(object):
                     c.execute('UPDATE file SET deleted=? WHERE path=?', (deleted, f))
                 conn.commit()
 
+            '''
             print "scanned volume %s: %s files, %s new, %s deleted, %s ignored, %s unsupported" % (
                     name, len(files), len(new_files), len(deleted_files), len(ignored), len(unsupported))
+            '''
+            print "scanned volume %s: %s files, %s new, %s deleted, %s ignored" % (
+                    name, len(files), len(new_files), len(deleted_files), len(ignored))
 
 
     def extract(self, args):
