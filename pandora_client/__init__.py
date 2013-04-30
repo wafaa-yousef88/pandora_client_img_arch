@@ -312,7 +312,7 @@ class Client(object):
         if update:
             info = utils.avinfo(path)
             if 'error' in info or info['size'] == 0:
-                print info
+                #print info
                 return False
             else:
                 oshash = info['oshash']
@@ -448,12 +448,14 @@ class Client(object):
                 print '\n\t'.join([f[len(path):] for f in unknown])
                 print ''
 
+            '''
             if unsupported:
                 files = list(set(files) - set(unsupported))
                 print 'The following files are in an unsupported format and will not be synced:'
                 print '\t',
                 print '\n\t'.join([f[len(path):] for f in unsupported])
                 print ''
+            '''
 
             deleted_files = filter(lambda f: f not in files, known_files)
             new_files = filter(lambda f: f not in known_files, files)
@@ -491,13 +493,14 @@ class Client(object):
             self.update_encodes()
 
         for oshash in files:
-            for path in self.path(oshash):
-                if os.path.exists(path):
-                    info = self.info(oshash)
-                    #print path.encode('utf-8')
-                    i = encode(path, self.media_cache(), self.profile, info,
-                               self.api.site['media'].get('importFrames'))
-                    break
+            info = self.info(oshash)
+            if not 'error' in info:
+                for path in self.path(oshash):
+                    if os.path.exists(path):
+                        #print path.encode('utf-8')
+                        i = encode(path, self.media_cache(), self.profile, info,
+                                   self.api.site['media'].get('importFrames'))
+                        break
 
     def sync(self, args):
         if not self.user:
@@ -624,28 +627,29 @@ class Client(object):
             print 'encoding and uploading %s videos' % len(data)
             for oshash in data:
                 data = {}
-                for path in self.path(oshash):
-                    if os.path.exists(path):
-                        info = self.info(oshash)
-                        if not self.api.uploadVideo(path,
-                                                data, self.profile, info):
-                            print 'video upload failed, giving up, please try again'
-                            return
-                        if 'rightsLevel' in self._config:
-                            r = self.api.find({'query': {
-                                'conditions': [
-                                    {'key': 'oshash', 'value': oshash, 'operator': '=='}
-                                ],
-                                'keys': ['id'],
-                                'range': [0, 1]
-                            }})
-                            if r['data']['items']:
-                                item = r['data']['items'][0]['id']
-                                r = self.api.edit({
-                                    'item': item,
-                                    'rightsLevel': self._config['rightsLevel']
-                                })
-                        break
+                info = self.info(oshash)
+                if not 'error' in info:
+                    for path in self.path(oshash):
+                        if os.path.exists(path):
+                            if not self.api.uploadVideo(path,
+                                                    data, self.profile, info):
+                                print 'video upload failed, giving up, please try again'
+                                return
+                            if 'rightsLevel' in self._config:
+                                r = self.api.find({'query': {
+                                    'conditions': [
+                                        {'key': 'oshash', 'value': oshash, 'operator': '=='}
+                                    ],
+                                    'keys': ['id'],
+                                    'range': [0, 1]
+                                }})
+                                if r['data']['items']:
+                                    item = r['data']['items'][0]['id']
+                                    r = self.api.edit({
+                                        'item': item,
+                                        'rightsLevel': self._config['rightsLevel']
+                                    })
+                            break
 
         if files:
             print 'uploading %s files' % len(files)

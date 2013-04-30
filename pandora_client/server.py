@@ -124,10 +124,12 @@ class Server(Resource):
                     self.update_status(oshash, 'done')
                     self.upload.put(oshash)
                     continue
+                info = self.client.info(oshash)
+                if 'error' in info:
+                    continue
                 for f in self.client.path(oshash):
                     if os.path.exists(f):
                         response['oshash'] = oshash
-                        info = self.client.info(oshash)
                         url = 'http://%s:%s/get/%s' % (request.host.host, request.host.port, oshash)
                         output = '/tmp/%s.%s' % (oshash, self.client.profile)
                         response['cmd'] = extract.video_cmd(url, output, self.client.profile, info)
