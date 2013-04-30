@@ -311,10 +311,12 @@ class Client(object):
             break
         if update:
             info = utils.avinfo(path)
+            '''
             if 'error' in info or info['size'] == 0:
                 #print info
                 return False
-            else:
+            '''
+            if info['size'] > 0:
                 oshash = info['oshash']
                 sha1 = None
                 deleted = -1
