@@ -156,7 +156,7 @@ def video_cmd(video, target, profile, info):
         audiobitrate = '22k'
         audiochannels = 1
 
-    if info['video'] and 'display_aspect_ratio' in info['video'][0]:
+    if 'video' in info and info['video'] and 'display_aspect_ratio' in info['video'][0]:
         dar = AspectRatio(info['video'][0]['display_aspect_ratio'])
         fps = AspectRatio(info['video'][0]['framerate'])
         width = int(dar * height)
@@ -232,7 +232,7 @@ def video_cmd(video, target, profile, info):
     else:
         video_settings = ['-vn']
 
-    if info['audio']:
+    if 'audio' in info and info['audio']:
         if video_settings == ['-vn'] or not info['video']:
             n = 0
         else:
