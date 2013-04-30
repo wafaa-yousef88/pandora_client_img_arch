@@ -311,7 +311,10 @@ class Client(object):
             break
         if update:
             info = utils.avinfo(path)
-            if info['size'] > 0:
+            if 'error' in info or info['size'] == 0:
+                print info
+                return False
+            else:
                 oshash = info['oshash']
                 sha1 = None
                 deleted = -1
@@ -320,8 +323,7 @@ class Client(object):
                 c.execute(u'INSERT OR REPLACE INTO file values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
                           t)
                 conn.commit()
-            else:
-                print info
+            return True
 
     def cmd(self, args):
         filename = args[0]
@@ -415,6 +417,7 @@ class Client(object):
             files = []
             unknown = []
             ignored = []
+            unsupported = []
             for dirpath, dirnames, filenames in os.walk(path, followlinks=True):
                 if isinstance(dirpath, str):
                     dirpath = dirpath.decode('utf-8')
@@ -432,8 +435,10 @@ class Client(object):
                     unknown.append(f)
 
             files = list(set(files) - set(unknown))
+
             for f in files:
-                self.scan_file(f)
+                if not self.scan_file(f):
+                    unsupported.append(f)
 
             if unknown:
                 example = example_path(self)
@@ -441,6 +446,13 @@ class Client(object):
                 print 'The following files do not fit into the folder structure and will not be synced:'
                 print '\t',
                 print '\n\t'.join([f[len(path):] for f in unknown])
+                print ''
+
+            if unsupported:
+                files = list(set(files) - set(unsupported))
+                print 'The following files are in an unsupported format and will not be synced:'
+                print '\t',
+                print '\n\t'.join([f[len(path):] for f in unsupported])
                 print ''
 
             deleted_files = filter(lambda f: f not in files, known_files)
@@ -452,8 +464,8 @@ class Client(object):
                     c.execute('UPDATE file SET deleted=? WHERE path=?', (deleted, f))
                 conn.commit()
 
-            print "scanned volume %s: %s files, %s new, %s deleted, %s ignored" % (
-                    name, len(files), len(new_files), len(deleted_files), len(ignored))
+            print "scanned volume %s: %s files, %s new, %s deleted, %s ignored, %s unsupported" % (
+                    name, len(files), len(new_files), len(deleted_files), len(ignored), len(unsupported))
 
 
     def extract(self, args):
