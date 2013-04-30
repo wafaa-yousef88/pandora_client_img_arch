@@ -128,6 +128,9 @@ class Server(Resource):
                     if os.path.exists(f):
                         response['oshash'] = oshash
                         info = self.client.info(oshash)
+                        if not 'video' in info:
+                            print oshash, f, 'not media file skipped'
+                            continue
                         url = 'http://%s:%s/get/%s' % (request.host.host, request.host.port, oshash)
                         output = '/tmp/%s.%s' % (oshash, self.client.profile)
                         response['cmd'] = extract.video_cmd(url, output, self.client.profile, info)
