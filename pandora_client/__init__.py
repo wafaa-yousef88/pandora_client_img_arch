@@ -323,7 +323,7 @@ class Client(object):
                 c.execute(u'INSERT OR REPLACE INTO file values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
                           t)
                 conn.commit()
-            return True
+        return True
 
     def cmd(self, args):
         filename = args[0]
