@@ -160,8 +160,8 @@ class Server(Resource):
 
     def update(self):
         self.client.scan([])
-        self.client.update_encodes(True)
         self.client.sync([])
+        self.client.update_encodes(True)
 
 def run(client):
     root = Server(client)
