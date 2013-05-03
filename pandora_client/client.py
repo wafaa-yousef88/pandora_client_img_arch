@@ -35,7 +35,7 @@ class DistributedClient:
         r = requests.get(url)
         data = json.loads(r.content)
         if 'oshash' in data:
-            self.encode(**data)
+            self.encode(data['oshash'], data['cmd'], data['output'])
             return True
         return False
 
