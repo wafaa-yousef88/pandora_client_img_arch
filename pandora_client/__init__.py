@@ -104,6 +104,13 @@ def ignore_file(client, path):
         return True
     return False
 
+def hide_cursor():
+    sys.stdout.write("\033[?25l")
+    sys.stdout.flush()
+
+def show_cursor():
+    sys.stdout.write("\033[?25h")
+    sys.stdout.flush()
 
 class Client(object):
     _configfile = None
@@ -636,7 +643,7 @@ class Client(object):
             for oshash in data:
                 data = {}
                 info = self.info(oshash)
-                if not 'error' in info:
+                if info and not 'error' in info:
                     for path in self.path(oshash):
                         if os.path.exists(path):
                             if not self.api.uploadVideo(path,
@@ -826,6 +833,7 @@ class API(ox.API):
             data = self._json_request(url, form)
 
         print filename
+        hide_cursor()
         result_url = data.get('url')
         if 'uploadUrl' in data:
             uploadUrl = data['uploadUrl']
@@ -897,6 +905,7 @@ class API(ox.API):
             else:
                 print ' ' * 80
             print ''
+            show_cursor()
             return data and 'result' in data and data.get('result') == 1
         else:
             if DEBUG:
