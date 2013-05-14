@@ -125,7 +125,7 @@ class Server(Resource):
                     self.upload.put(oshash)
                     continue
                 info = self.client.info(oshash)
-                if 'error' in info:
+                if not info or 'error' in info:
                     continue
                 for f in self.client.path(oshash):
                     if os.path.exists(f):
