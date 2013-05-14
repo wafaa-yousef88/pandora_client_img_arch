@@ -18,12 +18,16 @@ import pandora_client
 if __name__ == '__main__':
     usage = "usage: %prog [options] action"
     parser = OptionParser(usage=usage)
+    parser.add_option('-v', '--version', dest='version', action="store_true")
     parser.add_option('-c', '--config', dest='config',
         help='config.json containing config', default='~/.ox/client.json', type='string')
     parser.add_option('-d', '--debug', dest='debug',
         help='output debug information', action="store_true")
     (opts, args) = parser.parse_args()
 
+    if opts.version:
+        print "%s %s" % (os.path.basename(sys.argv[0]), pandora_client.__version__)
+        sys.exit(0)
     opts.config = os.path.expanduser(opts.config)
     if (args and args[0] not in ('config', 'client') and not os.path.exists(opts.config)):
         print 'no configuration found, run "%s config" or specify one with -c' % sys.argv[0]
@@ -31,7 +35,7 @@ if __name__ == '__main__':
 
     if None in (opts.config, ):
         parser.print_help()
-        sys.exit()
+        sys.exit(1)
 
     actions = ('scan', 'sync', 'upload', 'extract', 'clean', 'cmd', 'import_srt')
     config = ('config', 'add_volume')

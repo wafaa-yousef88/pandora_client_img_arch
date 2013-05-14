@@ -15,6 +15,7 @@ import socket
 import sqlite3
 import sys
 import time
+import pkg_resources
 
 import ox
 
@@ -24,7 +25,7 @@ import utils
 
 DEBUG = False
 
-__version__ = '0.2'
+__version__ = pkg_resources.require("pandora_client")[0].version
 
 socket.setdefaulttimeout(300)
 CHUNK_SIZE = 1024*1024

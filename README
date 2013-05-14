@@ -46,6 +46,8 @@ on a local network or multiple encodings on the same host.
 
 to do this you need to install additional dependencies:
     apt-get install python-twisted python-requests
+    (on ubuntu 12.04 you need a newer version of requests,
+     i.e: sudo easy_install -U requests)
 
 now run one node in server mode:
     pandora_client server
