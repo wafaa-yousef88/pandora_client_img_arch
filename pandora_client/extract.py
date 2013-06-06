@@ -168,6 +168,7 @@ def video_cmd(video, target, profile, info):
         if fps == 60:
             fps = 30
             extra += ['-r', '30']
+        fps = min(float(fps), 30)
         bitrate = height*width*fps*bpp/1000
         aspect = dar.ratio
         #use 1:1 pixel aspect ratio if dar is close to that
