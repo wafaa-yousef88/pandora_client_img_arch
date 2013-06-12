@@ -456,7 +456,7 @@ class Client(object):
                 print 'Files need to be in a folder structure like this:\n%s\n' % example
                 print 'The following files do not fit into the folder structure and will not be synced:'
                 print '\t',
-                print '\n\t'.join([f[len(path):] for f in unknown])
+                print '\n\t'.join([f[len(path):].encode('utf-8') for f in unknown])
                 print ''
 
             '''
