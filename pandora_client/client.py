@@ -75,8 +75,11 @@ class DistributedClient:
             if not self.next():
                 if new:
                     new = False
-                    print "currently no more files to encode"
-                time.sleep(60)
+                    print "currently no more files to encode, ctrl-c to quit"
+                try:
+                    time.sleep(60)
+                except KeyboardInterrupt:
+                    return
             else:
                 new = True
 
