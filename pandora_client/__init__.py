@@ -31,22 +31,28 @@ socket.setdefaulttimeout(300)
 CHUNK_SIZE = 1024*1024
 default_media_cache = os.environ.get('oxMEDIA', '~/.ox/media')
 
+def get_frames(filename, prefix, info, force=False):
+    oshash = info['oshash']
+    cache = os.path.join(prefix, os.path.join(*utils.hash_prefix(oshash)))
+    frames = []
+    for pos in utils.video_frame_positions(info['duration']):
+        frame_name = '%s.png' % pos
+        frame_f = os.path.join(cache, frame_name)
+        if force or not os.path.exists(frame_f):
+            print frame_f
+            extract.frame(filename, frame_f, pos)
+        frames.append(frame_f)
+    return frames
+
 def encode(filename, prefix, profile, info=None, extract_frames=True):
     if not info:
         info = utils.avinfo(filename)
     if not 'oshash' in info:
         return None
     oshash = info['oshash']
-    frames = []
     cache = os.path.join(prefix, os.path.join(*utils.hash_prefix(oshash)))
     if info.get('video') and extract_frames:
-        for pos in utils.video_frame_positions(info['duration']):
-            frame_name = '%s.png' % pos
-            frame_f = os.path.join(cache, frame_name)
-            if not os.path.exists(frame_f):
-                print frame_f
-                extract.frame(filename, frame_f, pos)
-            frames.append(frame_f)
+        frames = get_frames(filename, prefix, info)
     if info.get('video') or info.get('audio'):
         media_f = os.path.join(cache, profile)
         if not os.path.exists(media_f) \
@@ -674,6 +680,25 @@ class Client(object):
                         self.api.uploadData(path, oshash)
                         break
 
+    def upload_frames(self, args):
+        if not self.user:
+            print "you need to login"
+            return
+        conn, c = self._conn()
+        for oshash in args:
+            info = self.info(oshash)
+            if info and not 'error' in info:
+                for path in self.path(oshash):
+                    if os.path.exists(path):
+                        frames = get_frames(path, self.api.media_cache, info, True)
+                        i = {
+                            'info': info,
+                            'oshash': oshash,
+                            'frames': frames,
+                        }
+                        r = self.api.uploadFrames(i, {})
+                        if r.get('status', {}).get('code') != 200:
+                            print r
     
     def files(self, prefix):
         if not prefix.endswith('/'):
@@ -768,15 +793,9 @@ class API(ox.API):
             self.media_cache = os.path.expanduser(default_media_cache)
         self._resume_file = '/tmp/pandora_client.%s.json' % os.environ.get('USER')
 
-    def uploadVideo(self, filename, data, profile, info=None):
-        i = encode(filename, self.media_cache, profile, info,
-                   self.site['media'].get('importFrames'))
-        if not i:
-            print "failed"
-            return
-
+    def uploadFrames(self, i, data):
         #upload frames
-        if self.site['media'].get('importFrames'):
+        if self.site['media'].get('importFrames') and i['frames']:
             form = ox.MultiPartForm()
             form.add_field('action', 'upload')
             form.add_field('id', i['oshash'])
@@ -787,6 +806,17 @@ class API(ox.API):
                 if os.path.exists(frame):
                     form.add_file('frame', fname, open(frame, 'rb'))
             r = self._json_request(self.url, form)
+            return r
+
+    def uploadVideo(self, filename, data, profile, info=None):
+        i = encode(filename, self.media_cache, profile, info,
+                   self.site['media'].get('importFrames'))
+        if not i:
+            print "failed"
+            return
+
+        #upload frames
+        r = self.uploadFrames(i, data)
 
         #upload media 
         if os.path.exists(i['media']):
