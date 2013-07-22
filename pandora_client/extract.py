@@ -65,7 +65,9 @@ def frame(video, target, position):
         pre = 0
     else:
         position = 2
-    cmd = [command('ffmpeg'), '-y', '-ss', str(pre), '-i', video, '-ss', str(position), '-an', '-vframes', '1', target]
+    cmd = [command('ffmpeg'), '-y', '-ss', str(pre), '-i', video, '-ss', str(position),
+            '-vf', 'scale=iw*sar:ih',
+            '-an', '-vframes', '1', target]
     r = run_command(cmd)
     return r == 0
 
