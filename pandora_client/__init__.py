@@ -242,6 +242,29 @@ class Client(object):
             break
         return info
 
+    def get_info(self, oshash):
+        prefixes = self.active_volumes().values()
+        _info = self.info(oshash)
+        for path in self.path(oshash):
+            for prefix in prefixes:
+                if path.startswith(prefix) and os.path.exists(path):
+                    path = path[len(prefix):]
+                    i = parse_path(self, path)
+                    if i:
+                        _info.update(i)
+                        return _info
+                    else:
+                        print 'failed to parse', path
+                        return
+
+    def get_info_for_ids(self, ids):
+        info = {}
+        for oshash in ids:
+            i = self.get_info(oshash)
+            if i:
+                info[oshash] = i
+        return info
+
     def path(self, oshash):
         conn, c = self._conn()
         c.execute('SELECT path FROM file WHERE oshash = ?', (oshash, ))
@@ -635,11 +658,7 @@ class Client(object):
         
         if info:
             print 'info for %d files requested' % len(info)
-            post = {'info': {}}
-            for oshash in info:
-                i = self.info(oshash)
-                if i:
-                    post['info'][oshash] = i
+            post = {'info': get_info_for_ids(info)}
             if post['info']:
                 print 'uploading info for %d files' % len(post['info'])
                 r = self.api.update(post)
