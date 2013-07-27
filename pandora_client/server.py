@@ -26,7 +26,10 @@ class UploadThread(Thread):
         while True:
             oshash = self.server.upload.get()
             print oshash
-            self.server.client.upload([oshash])
+            try:
+                self.server.client.upload([oshash])
+            except:
+                print 'failed to upload', oshash
             self.server.upload.task_done()
 
 class Server(Resource):
