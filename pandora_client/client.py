@@ -18,8 +18,11 @@ class DistributedClient:
         self.name = name
 
     def ping(self, oshash):
-        url = '%s/ping/%s/%s' % (self.url, oshash, self.name)
-        requests.get(url)
+        try:
+            url = '%s/ping/%s/%s' % (self.url, oshash, self.name)
+            requests.get(url)
+        except:
+            print 'cound not ping server'
 
     def status(self, oshash, status):
         url = '%s/status/%s' % (self.url, oshash)
