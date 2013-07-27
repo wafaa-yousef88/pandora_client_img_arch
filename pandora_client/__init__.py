@@ -242,8 +242,11 @@ class Client(object):
             break
         return info
 
-    def get_info(self, oshash):
-        prefixes = self.active_volumes().values()
+    def get_info(self, oshash, prefix=None):
+        if prefix:
+            prefixes = [prefix]
+        else:
+            prefixes = self.active_volumes().values()
         _info = self.info(oshash)
         for path in self.path(oshash):
             for prefix in prefixes:
@@ -257,10 +260,10 @@ class Client(object):
                         print 'failed to parse', path
                         return
 
-    def get_info_for_ids(self, ids):
+    def get_info_for_ids(self, ids, prefix=None):
         info = {}
         for oshash in ids:
-            i = self.get_info(oshash)
+            i = self.get_info(oshash, prefix)
             if i:
                 info[oshash] = i
         return info
@@ -580,16 +583,7 @@ class Client(object):
                     sent = 0
                     for offset in range(0, total, max_info):
                         post = {'info': {}, 'upload': True}
-                        for oshash in info[offset:offset+max_info]:
-                            _info = self.info(oshash)
-                            for path in self.path(oshash):
-                                path = path[len(prefix):]
-                                i = parse_path(self, path)
-                                if i:
-                                    _info.update(i)
-                                    break
-                            if _info:
-                                post['info'][oshash] = _info
+                        post['info'] = self.get_info_for_ids(info[offset:offset+max_info], prefix)
                         if len(post['info']):
                             r = self.api.update(post)
                             sent += len(post['info'])
@@ -658,10 +652,17 @@ class Client(object):
         
         if info:
             print 'info for %d files requested' % len(info)
-            post = {'info': get_info_for_ids(info)}
-            if post['info']:
-                print 'uploading info for %d files' % len(post['info'])
-                r = self.api.update(post)
+            max_info = 100
+            total = len(info)
+            sent = 0
+            for offset in range(0, total, max_info):
+                post = {'info': {}, 'upload': True}
+                post['info'] = self.get_info_for_ids(info[offset:offset+max_info])
+                if len(post['info']):
+                    r = self.api.update(post)
+                    sent += len(post['info'])
+            if sent:
+                print 'uploading info for %d files' % sent
 
         if data:
             print 'encoding and uploading %s videos' % len(data)
