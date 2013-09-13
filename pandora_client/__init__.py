@@ -53,6 +53,8 @@ def encode(filename, prefix, profile, info=None, extract_frames=True):
     cache = os.path.join(prefix, os.path.join(*utils.hash_prefix(oshash)))
     if info.get('video') and extract_frames:
         frames = get_frames(filename, prefix, info)
+    else:
+        frames = []
     if info.get('video') or info.get('audio'):
         media_f = os.path.join(cache, profile)
         if not os.path.exists(media_f) \
