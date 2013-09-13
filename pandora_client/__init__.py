@@ -538,6 +538,7 @@ class Client(object):
                 print "you need to login or run pandora_client extract offline"
                 return
             self.update_encodes()
+            files = self.get_encodes(self._config['url'])
 
         for oshash in files:
             info = self.info(oshash)
