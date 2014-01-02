@@ -16,6 +16,7 @@ import sqlite3
 import sys
 import time
 import pkg_resources
+from urlparse import urlparse
 
 import ox
 
@@ -890,6 +891,9 @@ class API(ox.API):
         result_url = data.get('url')
         if 'uploadUrl' in data:
             uploadUrl = data['uploadUrl']
+            if uploadUrl.startswith('/'):
+                u = urlparse(url)
+                uploadUrl = '%s//%s%s' (u.scheme, u.netloc, uploadUrl)
             f = open(filename)
             fsize = os.stat(filename).st_size
             done = 0
