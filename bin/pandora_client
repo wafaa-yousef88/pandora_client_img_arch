@@ -37,7 +37,7 @@ if __name__ == '__main__':
         parser.print_help()
         sys.exit(1)
 
-    actions = ('scan', 'sync', 'upload', 'upload_frames', 'extract', 'clean', 'cmd', 'import_srt')
+    actions = ('scan', 'sync', 'upload', 'upload_frames', 'extract', 'clean', 'cmd', 'import_srt', 'upload_document')
     config = ('config', 'add_volume')
     server = ('server', 'client')
     if not args or args[0] not in actions + config + server:

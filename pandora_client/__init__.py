@@ -723,7 +723,43 @@ class Client(object):
                         r = self.api.uploadFrames(i, {})
                         if r.get('status', {}).get('code') != 200:
                             print r
-    
+
+    def upload_document(self, args):
+        if not self.user:
+            print "you need to login"
+            return
+        conn, c = self._conn()
+        for f in args:
+            if f.split('.')[-1] not in ('jpg', 'pdf', 'png'):
+                print 'unsupported format', f
+                continue
+            url = '%supload/document/' % self._config['url']
+            r = self.api.upload_chunks(url, f, {
+                'filename': os.path.basename(f)
+            })
+            '''
+            if r:
+                oshash = ox.oshash(f)
+                r = self.api.findDocuments({
+                    "keys": ['id'],
+                    "query": {
+                        "conditions": [{"key": 'oshash', "value": oshash, "operator": '=='}],
+                        "operator": '&'
+                    }
+                })
+                did = r['data']['items'][0]['id']
+                if description:
+                    r = api.editDocument({
+                        'id': did,
+                        'description': descriptoin
+                    })
+                if item:
+                    r = api.addDocument({
+                        'id': did,
+                        'item': item
+                    })
+            '''
+
     def files(self, prefix):
         if not prefix.endswith('/'):
             prefix += '/'
