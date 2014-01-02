@@ -893,7 +893,7 @@ class API(ox.API):
             uploadUrl = data['uploadUrl']
             if uploadUrl.startswith('/'):
                 u = urlparse(url)
-                uploadUrl = '%s//%s%s' % (u.scheme, u.netloc, uploadUrl)
+                uploadUrl = '%s://%s%s' % (u.scheme, u.netloc, uploadUrl)
             f = open(filename)
             fsize = os.stat(filename).st_size
             done = 0
