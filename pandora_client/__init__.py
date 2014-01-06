@@ -593,6 +593,9 @@ class Client(object):
                             sent += len(post['info'])
                     if sent:
                         print 'sent info for %s files' % sent
+                    #send empty list to get updated list of requested info/files/data
+                    post = {'info': {}}
+                    r = self.api.update({})
 
         if not 'data' in r:
             print r
