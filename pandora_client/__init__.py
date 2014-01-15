@@ -52,15 +52,15 @@ def encode(filename, prefix, profile, info=None, extract_frames=True):
         return None
     oshash = info['oshash']
     cache = os.path.join(prefix, os.path.join(*utils.hash_prefix(oshash)))
-    if info.get('video') and extract_frames:
+    if info.get('image') and extract_frames:
         frames = get_frames(filename, prefix, info)
     else:
         frames = []
-    if info.get('video') or info.get('audio'):
+    if info.get('image'):
         media_f = os.path.join(cache, profile)
         if not os.path.exists(media_f) \
             or os.stat(media_f).st_size == 0:
-            extract.video(filename, media_f, profile, info)
+            extract.image(filename, media_f, profile, info)
     else:
         print info
         print filename
@@ -80,7 +80,7 @@ def encode_cmd(filename, prefix, profile, info):
     oshash = info['oshash']
     cache = os.path.join(prefix, os.path.join(*utils.hash_prefix(oshash)))
     media_f = os.path.join(cache, profile)
-    return extract.video_cmd(filename, media_f, profile, info)
+    return extract.image_cmd(filename, media_f, profile, info)
 
 def parse_path(client, path):
     '''
@@ -139,7 +139,8 @@ class Client(object):
             self._config = config
         if not self._config['url'].endswith('/'):
             self._config['url'] = self._config['url'] + '/'
-        self.profile = self._config.get('profile', '480p.webm')
+		#wafaa is asking why this is hardcoded?
+        self.profile = self._config.get('profile', '720p.png')
 
         if not offline:
             self.online()
@@ -283,7 +284,7 @@ class Client(object):
         self.api = API(self._config['url'], media_cache=self.media_cache())
         self.api.DEBUG = DEBUG
         if self.signin():
-            self.profile = "%sp.webm" % max(self.api.site['video']['resolutions'])
+            self.profile = "%sp.png" % max(self.api.site['video']['resolutions'])
         self.folderdepth = self._config.get('folderdepth', self.api.site['site'].get('folderdepth', 3))
 
     def signin(self):

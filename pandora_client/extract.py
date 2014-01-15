@@ -65,9 +65,7 @@ def frame(video, target, position):
         pre = 0
     else:
         position = 2
-    cmd = [command('ffmpeg'), '-y', '-ss', str(pre), '-i', video, '-ss', str(position),
-            '-vf', 'scale=iw*sar:ih',
-            '-an', '-vframes', '1', target]
+    cmd = [command('convert'), video, '-resize', '50', target]
     r = run_command(cmd)
     return r == 0
 
@@ -275,8 +273,94 @@ def video_cmd(video, target, profile, info):
         cmd += [target]
     return cmd
 
-def video(video, target, profile, info):
-    cmd = video_cmd(video, target, profile, info)
+def image_cmd(video, target, profile, info):
+
+    if not os.path.exists(target):
+        ox.makedirs(os.path.dirname(target))
+
+    '''
+        look into
+            lag
+            mb_static_threshold
+            qmax/qmin
+            rc_buf_aggressivity=0.95
+            token_partitions=4
+            level / speedlevel
+            bt?
+    '''
+    profile, format = profile.split('.')
+    bpp = 0.17
+
+    if profile == '1080p':
+        height = 1080
+
+        audiorate = 48000
+        audioquality = 6
+        audiobitrate = None
+        audiochannels = None
+
+    if profile == '720p':
+        height = 720
+
+        audiorate = 48000
+        audioquality = 5
+        audiobitrate = None
+        audiochannels = None
+    if profile == '480p':
+        height = 480
+
+        audiorate = 44100
+        audioquality = 3
+        audiobitrate = None
+        audiochannels = 2
+    elif profile == '432p':
+        height = 432
+        audiorate = 44100
+        audioquality = 2
+        audiobitrate = None
+        audiochannels = 2
+    elif profile == '360p':
+        height = 360
+
+        audiorate = 44100
+        audioquality = 1
+        audiobitrate = None
+        audiochannels = 1
+    elif profile == '288p':
+        height = 288
+
+        audiorate = 44100
+        audioquality = 0
+        audiobitrate = None
+        audiochannels = 1
+    elif profile == '240p':
+        height = 240
+
+        audiorate = 44100
+        audioquality = 0
+        audiobitrate = None
+        audiochannels = 1
+    elif profile == '144p':
+        height = 144
+
+        audiorate = 22050
+        audioquality = -1
+        audiobitrate = '22k'
+        audiochannels = 1
+    else:
+        height = 96
+
+        audiorate = 22050
+        audioquality = -1
+        audiobitrate = '22k'
+        audiochannels = 1
+
+    cmd = [command('convert'), video, '-scale', 'x720', target]
+    print "cmd print %s" % cmd
+    return cmd
+
+def image(video, target, profile, info):
+    cmd = image_cmd(video, target, profile, info)
     profile, format = profile.split('.')
     #r = run_command(cmd, -1)
     p = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE)

@@ -42,10 +42,6 @@ class AspectRatio(fractions.Fraction):
 def avinfo(filename):
     if os.path.getsize(filename):
         info = ox.avinfo(filename)
-        if 'video' in info and info['video'] and 'width' in info['video'][0]:
-            if not 'display_aspect_ratio' in info['video'][0]:
-                dar = AspectRatio(info['video'][0]['width'], info['video'][0]['height'])
-                info['video'][0]['display_aspect_ratio'] = dar.ratio
         del info['path']
         if os.path.splitext(filename)[-1] in ('.srt', '.sub', '.idx', '.rar') and 'error' in info:
             del info['error']
